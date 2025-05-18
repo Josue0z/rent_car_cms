@@ -1,4 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:rent_car_cms/models/auto.dart';
+import 'package:rent_car_cms/models/banco.cuenta.tipo.dart';
+import 'package:rent_car_cms/models/banco.dart';
+import 'package:rent_car_cms/models/color.dart';
+import 'package:rent_car_cms/models/combustible.dart';
+import 'package:rent_car_cms/models/marca.dart';
+import 'package:rent_car_cms/models/modelo.dart';
+import 'package:rent_car_cms/models/modelo.version.dart';
+import 'package:rent_car_cms/models/provincia.dart';
+import 'package:rent_car_cms/models/tipo.auto.dart';
 import 'package:rent_car_cms/models/usuario.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -80,3 +90,23 @@ const FontWeight kLabelsFontWeight = FontWeight.bold;
 const FontWeight kParagraphFontWeight = FontWeight.w400;
 
 const FontWeight kPlaceholdersFontWeight = FontWeight.w500;
+
+List<Banco> bancos = [];
+
+List<BancoCuentaTipo> bancosCuentaTipo = [];
+
+List<Marca> marcas = [];
+
+List<Modelo> modelos = [];
+
+List<ModeloVersion> modelosVersiones = [];
+
+List<Provincia> provincias = [];
+
+List<MyColor> colores = [];
+
+List<TipoAuto> tiposAutos = [];
+
+List<Combustible> combustibles = [];
+
+List<Transmision> transmisiones = [];

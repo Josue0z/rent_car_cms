@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/models/auto.dart';
@@ -62,6 +63,11 @@ class Reserva {
   int? autoAno;
   Cliente? cliente;
   String? reservaNumeroEtiqueta;
+  String? tarjetaNumero;
+
+  int? codigoVerificacionEntrega;
+
+  bool? entregaVerificada;
 
   Reserva(
       {this.reservaId,
@@ -114,7 +120,10 @@ class Reserva {
       this.autoAno,
       this.cliente,
       this.beneficiario,
-      this.reservaNumeroEtiqueta});
+      this.reservaNumeroEtiqueta,
+      this.tarjetaNumero,
+      this.codigoVerificacionEntrega,
+      this.entregaVerificada});
 
   String get reservaCreadoElString {
     return reservaCreadoEl!.format(payload: 'YYYYMMDD');
@@ -125,6 +134,62 @@ class Reserva {
       return (reservaMontoTotal! - reservaPagado!).toDouble();
     }
     return (reservaMontoTotal! - reservaAbono!).toDouble();
+  }
+
+  double get reservaImpuestosFaltante {
+    return (reservaImpuestos! * 0.7);
+  }
+
+  CardType? validateCreditCard(String cardNumber) {
+    // Expresión regular para Visa
+    final visaRegex = RegExp(r"^4[0-9]{12}(?:[0-9]{3})?$");
+    // Expresión regular para Mastercard
+    final mastercardRegex = RegExp(r"^5[1-5][0-9]{14}$");
+    // Expresión regular para American Express
+    final amexRegex = RegExp(r"^3[47][0-9]{13}$");
+
+    if (visaRegex.hasMatch(cardNumber)) {
+      return CardType.visa;
+    } else if (mastercardRegex.hasMatch(cardNumber)) {
+      return CardType.mastercard;
+    } else if (amexRegex.hasMatch(cardNumber)) {
+      return CardType.americanExpress;
+    } else {
+      return null;
+    }
+  }
+
+  String? get cardLogo {
+    var xcardType =
+        validateCreditCard(tarjetaNumero?.split(' ').join('') ?? '');
+
+    if (xcardType == CardType.mastercard) {
+      return 'assets/images/mastercard-logo.png';
+    }
+    if (xcardType == CardType.visa) {
+      return 'assets/images/visa-logo.png';
+    }
+
+    if (xcardType == CardType.americanExpress) {
+      return 'assets/images/amex-svgrepo-com.png';
+    }
+    return null;
+  }
+
+  String get cardTypeName {
+    var xcardType =
+        validateCreditCard(tarjetaNumero?.split(' ').join('') ?? '');
+    if (xcardType == CardType.mastercard) {
+      return 'Mastercard';
+    }
+    if (xcardType == CardType.visa) {
+      return 'Visa';
+    }
+
+    if (xcardType == CardType.americanExpress) {
+      return 'American Express';
+    }
+    return '<None>';
   }
 
   Future<Reserva?> create() async {
@@ -139,12 +204,25 @@ class Reserva {
     }
   }
 
+  Future<Reserva?> aceptar() async {
+    try {
+      var res =
+          await rentApi.put('/reservas/aceptar/$reservaId', data: toMap());
+      if (res.statusCode == 200) {
+        return Reserva.fromMap(res.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
   Future<dynamic> probarPago() async {
     try {
       var res = await rentApi.post('/pagos/probar-pago', data: {
         'tarjetaId': tarjetaId,
-        'reservaPagado': reservaAbono?.toStringAsFixed(2),
-        'reservaImpuestos': reservaImpuestosAbono?.toStringAsFixed(2)
+        'reservaPagado': reservaDeuda.toStringAsFixed(2),
+        'reservaImpuestos': reservaImpuestosFaltante.toStringAsFixed(2)
       });
       if (res.statusCode == 200) {
         return res.data;
@@ -159,8 +237,8 @@ class Reserva {
     try {
       var res = await rentApi.post('/pagos/agregar-pago', data: {
         'reservaId': reservaId,
-        'reservaPagado': reservaAbono,
-        'reservaImpuestos': reservaImpuestosAbono
+        'reservaPagado': reservaDeuda,
+        'reservaImpuestos': reservaImpuestosFaltante
       });
       if (res.statusCode == 200) {
         return res.data;
@@ -178,26 +256,27 @@ class Reserva {
         return Reserva.fromMap(res.data);
       }
       return null;
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 
-  static Future<List<Reserva>> getBookings() async {
+  static Future<List<Reserva>> getBookings({int beneficiarioId = 0}) async {
     try {
-      var res = await rentApi.get('/reservas/todos');
+      var res = await rentApi.get(
+          '/reservas/historicoBeneficiario?beneficiarioId=$beneficiarioId');
 
       if (res.statusCode == 200) {
         return (res.data as List).map((e) => Reserva.fromMap(e)).toList();
       }
       return [];
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 
   Color getStatusColor(BuildContext context) {
-    if (reservaEstatus == 3) {
+    if (reservaEstatus == 3 || reservaEstatus == 4) {
       return Theme.of(context).colorScheme.error;
     }
     if (reservaEstatus == 2) {
@@ -205,6 +284,10 @@ class Reserva {
     }
     if (reservaEstatus == 1) {
       return Theme.of(context).colorScheme.secondary;
+    }
+
+    if (reservaEstatus == 5) {
+      return Colors.orange;
     }
     return Colors.transparent;
   }
@@ -219,7 +302,21 @@ class Reserva {
     if (reservaEstatus == 3) {
       return 'CERRADA';
     }
+
+    if (reservaEstatus == 4) {
+      return 'CANCELADA';
+    }
+
+    if (reservaEstatus == 5) {
+      return 'EN EJECUCION';
+    }
     return '<NONE>';
+  }
+
+  String? get latestNumbers {
+    if (tarjetaNumero == null) return null;
+    var x = tarjetaNumero?.split(' ').join('');
+    return x?.substring(x.length - 4, x.length);
   }
 
   int get days {
@@ -420,7 +517,10 @@ class Reserva {
         beneficiario: map['beneficiario'] != null
             ? Beneficiario.fromMap(map['beneficiario'])
             : null,
-        reservaNumeroEtiqueta: map['reservaNumeroEtiqueta']);
+        reservaNumeroEtiqueta: map['reservaNumeroEtiqueta'],
+        codigoVerificacionEntrega: map['codigoVerificacionEntrega'],
+        entregaVerificada: map['entregaVerificada'],
+        tarjetaNumero: map['tarjetaNumero']);
   }
 
   String toJson() => json.encode(toMap());

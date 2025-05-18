@@ -22,11 +22,11 @@ class _ColorsEditorPageState extends State<ColorsEditorPage> {
   Color currentColor = Colors.transparent;
 
   String get title {
-    return widget.editing ? 'EDITING COLOR...' : 'CREATING COLOR...';
+    return widget.editing ? 'EDITANDO COLOR...' : 'CREANDO COLOR...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE COLOR' : 'CREATE COLOR';
+    return widget.editing ? 'EDITAR COLOR' : 'CREAR COLOR';
   }
 
   _onSubmit() async {
@@ -106,11 +106,11 @@ class _ColorsEditorPageState extends State<ColorsEditorPage> {
                 TextFormField(
                   controller: autoColor,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'NAME', labelText: 'COLOR'),
+                      hintText: 'NOMBRE', labelText: 'COLOR'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

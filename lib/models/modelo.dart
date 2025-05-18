@@ -21,8 +21,8 @@ class Modelo {
     try {
       var res = await rentApi.get('/modelos/todos?marcaId=$marcaId');
       return (res.data as List).map((e) => Modelo.fromJson(e)).toList();
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 

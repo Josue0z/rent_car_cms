@@ -1,6 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
+import 'package:rent_car_cms/apis/http_clients.dart';
+
 class BancoCuentaTipo {
   int? bancoCuentaTipoId;
   String? name;
@@ -8,6 +10,15 @@ class BancoCuentaTipo {
     this.bancoCuentaTipoId,
     this.name,
   });
+
+  static Future<List<BancoCuentaTipo>> get() async {
+    try {
+      var res = await rentApi.get('/bancoCuentaTipo/todos');
+      return (res.data as List).map((e) => BancoCuentaTipo.fromMap(e)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   BancoCuentaTipo copyWith({
     int? bancoCuentaTipoId,

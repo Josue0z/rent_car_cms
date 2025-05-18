@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:rent_car_cms/models/beneficiario.dart';
-import 'package:rent_car_cms/models/cliente.dart';
 import 'package:rent_car_cms/models/usuario.dart';
-import 'package:rent_car_cms/pages/users.details_page.dart';
+
 import 'package:rent_car_cms/settings.dart';
 
 class UsersPage extends StatefulWidget {

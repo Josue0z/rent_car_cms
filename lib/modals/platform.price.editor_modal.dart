@@ -23,11 +23,11 @@ class _PlatformPriceEditorModalState extends State<PlatformPriceEditorModal> {
   TextEditingController clientPrice = TextEditingController();
 
   String get title {
-    return widget.editing ? 'EDITING PRICE...' : 'CREATING PRICE...';
+    return widget.editing ? 'EDITANDO PRECIO...' : 'CREANDO PRECIO...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE PRICE' : 'CREATE PRICE';
+    return widget.editing ? 'EDITAR PRECIO' : 'CREAR PRECIO';
   }
 
   _onSubmit() async {
@@ -114,9 +114,9 @@ class _PlatformPriceEditorModalState extends State<PlatformPriceEditorModal> {
                   controller: clientPrice,
                   keyboardType: TextInputType.number,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   decoration: const InputDecoration(
-                      hintText: 'VALUE', labelText: 'CLIENT PRICE'),
+                      hintText: 'VALOR', labelText: 'CLIENTE PRECIO'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

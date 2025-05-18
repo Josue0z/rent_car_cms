@@ -1,7 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:rent_car_cms/modals/cartypes.editor_modal.dart';
 import 'package:rent_car_cms/models/tipo.auto.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class CarsTypesPage extends StatefulWidget {
   const CarsTypesPage({super.key});
@@ -11,7 +15,8 @@ class CarsTypesPage extends StatefulWidget {
 }
 
 class _CarsTypesPageState extends State<CarsTypesPage> {
-  late Future<List<TipoAuto>> future;
+  List<TipoAuto> tipos = [];
+  late Future future;
 
   Widget get loadingView {
     return const Center(
@@ -19,10 +24,10 @@ class _CarsTypesPageState extends State<CarsTypesPage> {
     );
   }
 
-  Widget contentView(List<TipoAuto> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = tipos[index];
           return ListTile(
             title: Text(item.tipoNombre ?? ''),
             trailing: IconButton(
@@ -34,9 +39,7 @@ class _CarsTypesPageState extends State<CarsTypesPage> {
                             CarTypesEditorModal(autoType: item, editing: true));
 
                     if (res == 'UPDATE') {
-                      setState(() {
-                        future = TipoAuto.get();
-                      });
+                      _reload();
                     }
                   } catch (e) {
                     print(e);
@@ -46,28 +49,7 @@ class _CarsTypesPageState extends State<CarsTypesPage> {
           );
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = TipoAuto.get();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: tipos.length);
   }
 
   _showCarTypeEditor() async {
@@ -85,19 +67,43 @@ class _CarsTypesPageState extends State<CarsTypesPage> {
     }
   }
 
+  _initAsync() async {
+    try {
+      tipos = await TipoAuto.get();
+      setState(() {});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  _reload() {
+    setState(() {
+      future = _initAsync();
+    });
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
   @override
   void initState() {
-    setState(() {
-      future = TipoAuto.get();
-    });
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CARS TYPES'),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'TIPOS DE AUTOS',
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -106,15 +112,14 @@ class _CarsTypesPageState extends State<CarsTypesPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError || s.data == null) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(s.data!);
+                return contentView;
               }),
           onRefresh: () async {
-            setState(() {
-              future = TipoAuto.get();
-            });
+            _reload();
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showCarTypeEditor,
         child: const Icon(Icons.add),

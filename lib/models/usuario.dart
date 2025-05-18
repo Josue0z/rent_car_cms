@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/models/beneficiario.dart';
 import 'package:rent_car_cms/models/cliente.dart';
-import 'package:rent_car_cms/models/imagen.model.dart';
+import 'package:rent_car_cms/models/documento.dart';
 import 'package:rent_car_cms/models/manejador.dart';
 import 'package:rent_car_cms/settings.dart';
 
@@ -108,30 +108,61 @@ class Usuario {
   UsuarioEstatus? estatus;
   int? usuarioTipo;
   Cliente? cliente;
-  List<ImagenModel>? documentos;
+  List<DocumentoModel>? documentos;
   String? usuarioPerfil;
   bool? cambioClave;
   Beneficiario? beneficiario;
   int? manejadorId;
   Manejador? manejador;
 
-  Usuario(
-      {this.usuarioId,
-      this.usuarioLogin,
-      this.usuarioClave,
-      this.clienteId,
-      this.beneficiarioId,
-      this.fhCreacion,
-      this.usuarioEstatus,
-      this.estatus,
-      this.usuarioTipo,
-      this.cliente,
-      this.documentos,
-      this.usuarioPerfil,
-      this.cambioClave,
-      this.beneficiario,
-      this.manejadorId,
-      this.manejador});
+  Usuario({
+    this.usuarioId,
+    this.usuarioLogin,
+    this.usuarioClave,
+    this.clienteId,
+    this.beneficiarioId,
+    this.fhCreacion,
+    this.usuarioEstatus,
+    this.estatus,
+    this.usuarioTipo,
+    this.cliente,
+    this.documentos,
+    this.usuarioPerfil,
+    this.cambioClave,
+    this.beneficiario,
+    this.manejadorId,
+    this.manejador,
+  });
+
+  String get usuarioEstatusNombre {
+    if (usuarioEstatus == 1) {
+      return 'PENDIENTE'.tr;
+    }
+
+    if (usuarioEstatus == 2) {
+      return 'APROBADO';
+    }
+
+    if (usuarioEstatus == 3) {
+      return 'EN REVISION'.tr;
+    }
+    return '<None>';
+  }
+
+  Color get color {
+    if (usuarioEstatus == 1) {
+      return secondaryColor;
+    }
+
+    if (usuarioEstatus == 2) {
+      return Colors.green;
+    }
+
+    if (usuarioEstatus == 3) {
+      return Colors.orange;
+    }
+    return Colors.transparent;
+  }
 
   static Future<List<Usuario>> get({int usuarioTipo = 0}) async {
     try {
@@ -143,8 +174,8 @@ class Usuario {
             .cast<Usuario>();
       }
       return [];
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 
@@ -194,14 +225,12 @@ class Usuario {
       var res = await rentApi.post('/usuarios/login-as-admin',
           data: {'usuario': usuarioLogin, 'clave': usuarioClave});
 
-      print(res);
-
       if (res.statusCode == 200) {
         return Usuario.fromMap(res.data);
       }
       return null;
     } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+      throw e.response?.data['error'] ?? 'NO SE PUDO COMUNICAR CON EL SERVIDOR';
     }
   }
 
@@ -277,41 +306,48 @@ class Usuario {
     if (cliente != null) {
       map.addAll({'cliente': cliente?.toMap()});
     }
+
     return map;
   }
 
   factory Usuario.fromMap(Map<String, dynamic> map) {
     return Usuario(
-        usuarioId: map['usuarioId'] != null ? map['usuarioId'] as int : null,
-        usuarioLogin:
-            map['usuarioLogin'] != null ? map['usuarioLogin'] as String : null,
-        usuarioClave:
-            map['usuarioClave'] != null ? map['usuarioClave'] as String : null,
-        clienteId: map['clienteId'] != null ? map['clienteId'] as int : null,
-        beneficiarioId:
-            map['beneficiarioId'] != null ? map['beneficiarioId'] as int : null,
-        fhCreacion:
-            map['fhCreacion'] != null ? map['fhCreacion'] as String : null,
-        usuarioEstatus:
-            map['usuarioEstatus'] != null ? map['usuarioEstatus'] as int : null,
-        usuarioTipo:
-            map['usuarioTipo'] != null ? map['usuarioTipo'] as int : null,
-        cliente: map['cliente'] != null
-            ? Cliente.fromMap(
-                map['cliente'],
-              )
-            : null,
-        estatus: map['estatus'] != null
-            ? UsuarioEstatus.fromMap(map['estatus'])
-            : null,
-        cambioClave: map['cambioClave'],
-        beneficiario: map['beneficiario'] != null
-            ? Beneficiario.fromMap(map['beneficiario'])
-            : null,
-        manejadorId: map['manejadorId'],
-        manejador: map['manejador'] != null
-            ? Manejador.fromMap(map['manejador'])
-            : null);
+      usuarioId: map['usuarioId'] != null ? map['usuarioId'] as int : null,
+      usuarioLogin:
+          map['usuarioLogin'] != null ? map['usuarioLogin'] as String : null,
+      usuarioClave:
+          map['usuarioClave'] != null ? map['usuarioClave'] as String : null,
+      clienteId: map['clienteId'] != null ? map['clienteId'] as int : null,
+      beneficiarioId:
+          map['beneficiarioId'] != null ? map['beneficiarioId'] as int : null,
+      fhCreacion:
+          map['fhCreacion'] != null ? map['fhCreacion'] as String : null,
+      usuarioEstatus:
+          map['usuarioEstatus'] != null ? map['usuarioEstatus'] as int : null,
+      usuarioTipo:
+          map['usuarioTipo'] != null ? map['usuarioTipo'] as int : null,
+      cliente: map['cliente'] != null
+          ? Cliente.fromMap(
+              map['cliente'],
+            )
+          : null,
+      estatus: map['estatus'] != null
+          ? UsuarioEstatus.fromMap(map['estatus'])
+          : null,
+      cambioClave: map['cambioClave'],
+      beneficiario: map['beneficiario'] != null
+          ? Beneficiario.fromMap(map['beneficiario'])
+          : null,
+      manejadorId: map['manejadorId'],
+      manejador:
+          map['manejador'] != null ? Manejador.fromMap(map['manejador']) : null,
+      documentos: map['documentos'] != null
+          ? (map['documentos'] as List)
+              .map((e) => DocumentoModel.fromMap(e))
+              .toList()
+              .cast<DocumentoModel>()
+          : [],
+    );
   }
 
   String toJson() => json.encode(toMap());

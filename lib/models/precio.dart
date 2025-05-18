@@ -21,7 +21,6 @@ class Precio {
       var res = await rentApi.get('/precios/todos');
       return (res.data as List).map((e) => Precio.fromMap(e)).toList();
     } catch (e) {
-      print(e);
       rethrow;
     }
   }

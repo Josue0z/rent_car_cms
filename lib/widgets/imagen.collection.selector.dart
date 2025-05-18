@@ -1,17 +1,23 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rent_car_cms/models/imagen.model.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/utils/functions.dart';
+import 'package:rent_car_cms/widgets/app.custom.button.dart';
+
+class ImagenModelMetaData {
+  List<ImagenModel> imagenes;
+  String? errorEvent;
+  ImagenModelMetaData({required this.imagenes, this.errorEvent});
+}
 
 class _BuildCard extends StatelessWidget {
   VoidCallback? onDelete;
 
-  dynamic imagen;
+  ImagenModel imagen;
 
   void Function(Object?)? onSelected;
 
@@ -27,16 +33,35 @@ class _BuildCard extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          height: 200,
+          height: 300,
           margin: const EdgeInsets.symmetric(vertical: kDefaultPadding / 2),
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
           child: Stack(
             children: [
               Positioned.fill(
-                  child: imagen is Uint8List
-                      ? Image.memory(imagen, fit: BoxFit.cover)
-                      : Image.network(imagen.urlImagen, fit: BoxFit.cover)),
+                  child: imagen.imagenId != null
+                      ? Image.network(imagen.urlImagen, fit: BoxFit.cover)
+                      : Image.memory(base64Decode(imagen.imagenBase64!),
+                          fit: BoxFit.cover)),
+              imagen.imagenEstatus != null
+                  ? Positioned(
+                      right: 20,
+                      bottom: 20,
+                      child: Container(
+                        padding: const EdgeInsets.all(kDefaultPadding / 2),
+                        decoration: BoxDecoration(
+                            color: imagen.color,
+                            borderRadius: BorderRadius.circular(20)),
+                        child: Text(imagen.imagenEstatusLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: kLabelsFontWeight)),
+                      ))
+                  : const Positioned(child: SizedBox()),
               Positioned(
                   top: 20,
                   right: 20,
@@ -53,7 +78,7 @@ class _BuildCard extends StatelessWidget {
                             color: Theme.of(context).primaryColor),
                       ),
                     ),
-                  ))
+                  )),
             ],
           ),
         ),
@@ -62,117 +87,135 @@ class _BuildCard extends StatelessWidget {
   }
 }
 
-class ImagenSelectorWidget extends StatefulWidget {
-  List<ImagenModel>? imagenes = [];
+class ImagenSelectorWidget extends FormField<ImagenModelMetaData?> {
+  ImagenSelectorWidget({
+    super.key,
+    required BuildContext context,
+    FormFieldSetter<ImagenModelMetaData>? onChanged,
+    FormFieldValidator<ImagenModelMetaData>? validator,
+    ImagenModelMetaData? initialValue,
+    labelText = 'Cargar Imagenes... (1920×1100)',
+  }) : super(
+            initialValue: initialValue,
+            onSaved: onChanged,
+            validator: validator,
+            builder: (state) {
+              List<ImagenModel> imagenes =
+                  (initialValue ?? state.value)?.imagenes ?? [];
 
-  final String labelText;
-  Function(List<ImagenModel> imagenes) onChanged;
+              onPicker() async {
+                ImagenModelMetaData data =
+                    ImagenModelMetaData(imagenes: imagenes);
+                final ImagePicker picker = ImagePicker();
+                var xxfiles = await picker.pickMultiImage();
+                for (int i = 0; i < xxfiles.length; i++) {
+                  var file = xxfiles[i];
+                  var bytes = await file.readAsBytes();
+                  var base64 = base64Encode(bytes);
+                  var imagen = ImagenModel(imagenBase64: base64);
 
-  ImagenSelectorWidget(
-      {super.key,
-      this.imagenes,
-      this.labelText = 'Cargar Imagenes...',
-      required this.onChanged});
+                  var ximg = await decodeImageFromList(bytes);
 
-  @override
-  State<ImagenSelectorWidget> createState() => _ImagenSelectorWidgetState();
-}
+                  if (ximg.width != 1920 && ximg.height != 1100) {
+                    data.imagenes = [];
+                    data.errorEvent = 'IMAGE_SIZE_NOT_ALLOWED';
+                    state.didChange(data);
+                    state.save();
+                    state.validate();
+                  }
 
-class _ImagenSelectorWidgetState extends State<ImagenSelectorWidget> {
-  List<XFile> xfiles = [];
+                  imagenes.add(imagen);
+                }
+                if (data.errorEvent == null) {
+                  data.imagenes = imagenes;
+                  state.didChange(data);
+                  state.save();
+                  state.validate();
+                }
+              }
 
-  List<Widget> widgets = [];
+              if (imagenes.isNotEmpty) {
+                return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: kDefaultPadding),
+                      Text(
+                        '${'Imagenes'.tr} (${imagenes.length})',
+                        style: Theme.of(context)
+                            .textTheme
+                            .displaySmall
+                            ?.copyWith(color: Theme.of(context).primaryColor),
+                      ),
+                      const SizedBox(height: kDefaultPadding / 2),
+                      ...List.generate(imagenes.length, (index) {
+                        var img = imagenes[index];
+                        var xwidget = _BuildCard(imagen: img, index: index);
+                        xwidget.onDelete = () async {
+                          try {
+                            if (img.imagenId != null) {
+                              showLoader(context);
+                              await img.delete();
+                              Navigator.pop(context);
+                            }
 
-  _renderWidgets() {
-    for (int i = 0; i < widget.imagenes!.length; i++) {
-      var img = widget.imagenes![i];
-      widgets.add(_BuildCard(imagen: img, index: i));
-    }
-    print(widget.imagenes);
-    setState(() {});
-  }
-
-  _onPicker() async {
-    final ImagePicker picker = ImagePicker();
-    var xxfiles = await picker.pickMultiImage();
-    for (int i = 0; i < xxfiles.length; i++) {
-      var file = xxfiles[i];
-      var bytes = await file.readAsBytes();
-      var base64 = base64Encode(bytes);
-      var imagen = ImagenModel(
-        imagenBase64: base64,
-      );
-      widget.imagenes?.add(imagen);
-
-      var xwidget = _BuildCard(imagen: bytes, index: i);
-      xwidget.onDelete = () {
-        widget.imagenes?.remove(imagen);
-        xfiles.remove(file);
-        widgets.remove(xwidget);
-        widget.onChanged(widget.imagenes!);
-        setState(() {});
-      };
-      xwidget.onSelected = (id) {
-        widget.onChanged(widget.imagenes!);
-      };
-
-      widgets.add(xwidget);
-    }
-    xfiles.addAll(xxfiles);
-
-    widget.onChanged(widget.imagenes!);
-
-    setState(() {});
-  }
-
-  @override
-  void initState() {
-    _renderWidgets();
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.imagenes!.isNotEmpty) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: kDefaultPadding),
-        Text(
-          '${'Imagenes'.tr} (${widget.imagenes?.length})',
-          style: Theme.of(context)
-              .textTheme
-              .displaySmall
-              ?.copyWith(color: Theme.of(context).primaryColor),
-        ),
-        const SizedBox(height: kDefaultPadding / 2),
-        ...List.generate(widgets.length, (index) {
-          return widgets[index];
-        }),
-      ]);
-    }
-    return Container(
-        width: double.infinity,
-        height: 50,
-        margin: const EdgeInsets.symmetric(vertical: kDefaultPadding / 2),
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8)),
-        child: Material(
-          borderRadius: BorderRadius.circular(8),
-          child: Ink(
-            child: InkWell(
-              onTap: _onPicker,
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(widget.labelText,
-                        style: const TextStyle(color: kLabelsFontColor))
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ));
-  }
+                            imagenes.remove(img);
+                            state.didChange(
+                                ImagenModelMetaData(imagenes: imagenes));
+                            state.save();
+                            state.validate();
+                          } catch (e) {
+                            Navigator.pop(context);
+                            showSnackBar(context, e.toString());
+                          }
+                        };
+                        return xwidget;
+                      }),
+                      const SizedBox(height: kDefaultPadding),
+                      AppCustomButton(
+                          outlineEnabled: true,
+                          onPressed: () {
+                            onPicker();
+                          },
+                          children: const [Text('CARGAR MAS IMAGENES')])
+                    ]);
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DottedBorder(
+                      radius: const Radius.circular(10),
+                      borderType: BorderType.RRect,
+                      dashPattern: const [5, 8],
+                      color: Colors.black54,
+                      child: SizedBox(
+                          width: double.infinity,
+                          height: 300,
+                          child: Material(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Ink(
+                              child: InkWell(
+                                onTap: onPicker,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.image_outlined,
+                                          size: 130, color: Colors.black12),
+                                      const SizedBox(height: kDefaultPadding),
+                                      Text(labelText,
+                                          style: const TextStyle(
+                                              color: kLabelsFontColor))
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ))),
+                  const SizedBox(height: kDefaultPadding),
+                  Text(state.hasError ? state.errorText ?? '' : '',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error))
+                ],
+              );
+            });
 }

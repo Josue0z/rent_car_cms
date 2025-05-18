@@ -15,7 +15,6 @@ class AutoSeguro {
       var res = await rentApi.get('/seguros/todos?estatus=$estatus');
       return (res.data as List).map((e) => AutoSeguro.fromJson(e)).toList();
     } catch (e) {
-      print(e);
       rethrow;
     }
   }

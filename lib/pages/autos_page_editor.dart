@@ -1,23 +1,25 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rent_car_cms/controllers/ui.controller.dart';
-import 'package:rent_car_cms/modals/loading.modal.dart';
+import 'package:rent_car_cms/models/combustible.dart';
+import 'package:rent_car_cms/models/modelo.version.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/utils/functions.dart';
 import 'package:rent_car_cms/models/auto.dart';
 import 'package:rent_car_cms/models/ciudad.dart';
 import 'package:rent_car_cms/models/color.dart';
-import 'package:rent_car_cms/models/documento.dart';
 import 'package:rent_car_cms/models/imagen.model.dart';
 import 'package:rent_car_cms/models/marca.dart';
 import 'package:rent_car_cms/models/modelo.dart';
 import 'package:rent_car_cms/models/place.dart';
-import 'package:rent_car_cms/models/precio.dart';
 import 'package:rent_car_cms/models/provincia.dart';
-import 'package:rent_car_cms/models/seguro.dart';
 import 'package:rent_car_cms/models/tipo.auto.dart';
 import 'package:rent_car_cms/settings.dart';
-import 'package:rent_car_cms/widgets/address.selector.dart';
+import 'package:rent_car_cms/widgets/app.custom.button.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 import 'package:rent_car_cms/widgets/imagen.collection.selector.dart';
 
 class AutosPageEditor extends StatefulWidget {
@@ -31,27 +33,11 @@ class AutosPageEditor extends StatefulWidget {
 }
 
 class _AutosPageEditorState extends State<AutosPageEditor> {
-  late Auto auto;
-
   late UIController uiController = Get.find<UIController>();
-
-  List<Marca> makes = [];
 
   List<Modelo> models = [];
 
-  List<Modelo> oldModels = [];
-
-  List<Provincia> provinces = [];
-
   List<Ciudad> ciudades = [];
-
-  List<TipoAuto> tipoAutos = [];
-
-  List<MyColor> colors = [];
-
-  List<AutoSeguro> seguros = [];
-
-  List<Precio> precios = [];
 
   TextEditingController autoDescripcion = TextEditingController();
 
@@ -60,6 +46,14 @@ class _AutosPageEditorState extends State<AutosPageEditor> {
   TextEditingController autoYear = TextEditingController();
 
   TextEditingController autoKmIncluido = TextEditingController();
+
+  TextEditingController precio = TextEditingController();
+
+  TextEditingController autoNumeroDePasajeros = TextEditingController();
+
+  TextEditingController autoNumeroDeAsientos = TextEditingController();
+
+  TextEditingController autoNumeroDePuertas = TextEditingController();
 
   bool loadingContent = false;
 
@@ -71,6 +65,8 @@ class _AutosPageEditorState extends State<AutosPageEditor> {
 
   int currentModelId = 0;
 
+  int currentModelVersionId = 0;
+
   int currentProvinceId = 0;
 
   int currentCiudadId = 0;
@@ -81,21 +77,31 @@ class _AutosPageEditorState extends State<AutosPageEditor> {
 
   int currentAutoSeguroId = 0;
 
+  int currentTransmisionId = 0;
+
+  int currentGasolinaId = 0;
+
   int currentPrecioPlataformaId = 0;
 
   int imagen = 0;
 
   bool waitingModels = true;
 
-  List<ImagenModel> imagenes = [];
+  bool waitingCiudades = true;
 
-  List<Map<String, dynamic>> documentsTypes = [
-    {'documentoId': 1, "documentoEstatus": 1}
-  ];
+  bool waitingVersiones = true;
+
+  ImagenModelMetaData? imagenModelMetaData;
+
+  List<ImagenModel> imagenes = [];
 
   TextEditingController address = TextEditingController();
 
   Place? place;
+
+  Future? future;
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   _onChangedMake(int? id) async {
     setState(() {
@@ -110,19 +116,41 @@ class _AutosPageEditorState extends State<AutosPageEditor> {
     setState(() {});
   }
 
-  _onChangedModel(int? id) {
+  _onChangedModel(int? id) async {
     setState(() {
       currentModelId = id ?? 0;
+      currentModelVersionId = 0;
+      modelosVersiones = [];
+    });
+
+    modelosVersiones = await ModeloVersion.get(modeloId: currentModelId);
+
+    if (modelosVersiones.isNotEmpty) {
+      waitingVersiones = false;
+    }
+    setState(() {});
+  }
+
+  _onChangedModelVersion(int? id) {
+    setState(() {
+      currentModelVersionId = id ?? 0;
     });
   }
 
   _onChangedProvince(int? id) async {
     setState(() {
+      waitingCiudades = true;
       currentCiudadId = 0;
     });
     currentProvinceId = id ?? 0;
     var res = await Ciudad.get(provinciaId: currentProvinceId);
     ciudades = res;
+
+    if (ciudades.isNotEmpty) {
+      setState(() {
+        waitingCiudades = false;
+      });
+    }
     setState(() {});
   }
 
@@ -133,363 +161,414 @@ class _AutosPageEditorState extends State<AutosPageEditor> {
   }
 
   _onChangedTipoAuto(int? id) {
-    currentTipoAutoId = id ?? 0;
+    setState(() {
+      currentTipoAutoId = id ?? 0;
+    });
   }
 
   _onChangedAutoColor(int? id) {
-    currentAutoColorId = id ?? 0;
-  }
-
-  _onChangedAutoSeguro(int? id) {
-    currentAutoSeguroId = id ?? 0;
-  }
-
-  _onChangedPrecioPlataforma(int? id) {
-    currentPrecioPlataformaId = id ?? 0;
+    setState(() {
+      currentAutoColorId = id ?? 0;
+    });
   }
 
   _onSubmit() async {
-    showLoader(context);
-    try {
-      var long = place?.geometry?.location?.lng;
-      var lat = place?.geometry?.location?.lng;
+    if (_formKey.currentState!.validate() && imagenes.isNotEmpty) {
+      try {
+        Auto? auto = Auto(
+            autoId: widget.currentAuto?.autoId,
+            marcaId: currentMakeId,
+            modeloId: currentModelId,
+            provinciaId: currentProvinceId,
+            ciudadId: currentCiudadId,
+            tipoId: currentTipoAutoId,
+            modeloVersionId: currentModelVersionId,
+            colorId: currentAutoColorId,
+            seguroId: 1,
+            autoDescripcion: autoDescripcion.text,
+            autoCondiciones: autoConditions.text,
+            autoKmIncluido: 0,
+            beneficiarioId: uiController.usuario.value?.beneficiarioId?.toInt(),
+            autoCoorX:
+                uiController.usuario.value?.beneficiario?.beneficiarioCoorX,
+            autoCoorY:
+                uiController.usuario.value?.beneficiario?.beneficiarioCoorY,
+            autoDireccion:
+                uiController.usuario.value?.beneficiario?.beneficiarioDireccion,
+            paisId: 214,
+            autoEstatus: 1,
+            precioId: currentPrecioPlataformaId,
+            autoAno: int.parse(autoYear.text),
+            autoDondeSea: 1,
+            autoTransmision: 1,
+            combustibleId: currentGasolinaId,
+            transmisionId: currentTransmisionId,
+            precio: double.parse(precio.text.replaceAll(',', '')),
+            autoFecha: DateTime.now().toIso8601String(),
+            autoNumeroAsientos: int.parse(autoNumeroDeAsientos.text),
+            autoNumeroPersonas: int.parse(autoNumeroDePasajeros.text),
+            autoNumeroPuertas: int.parse(autoNumeroDePuertas.text),
+            autoNumeroViajes: 0);
 
-      Auto? auto = Auto(
-        autoId: widget.currentAuto?.autoId,
-        marcaId: currentMakeId,
-        modeloId: currentModelId,
-        provinciaId: currentProvinceId,
-        ciudadId: currentCiudadId,
-        tipoId: currentTipoAutoId,
-        colorId: currentAutoColorId,
-        seguroId: currentAutoSeguroId,
-        autoDescripcion: autoDescripcion.text,
-        autoCondiciones: autoConditions.text,
-        autoKmIncluido: autoKmIncluido.text,
-        beneficiarioId: uiController.usuario.value?.beneficiarioId?.toInt(),
-        autoCoorX: long,
-        autoCoorY: lat,
-        autoDireccion: address.text,
-        paisId: 214,
-        autoEstatus: 1,
-        precioId: currentPrecioPlataformaId,
-        autoAno: int.parse(autoYear.text),
-        autoDondeSea: 1,
-        autoTransmision: 1,
-        autoFecha: DateTime.now().toIso8601String(),
-      );
-
-      if (widget.editing) {
-        auto =
-            auto.copyWith(autoFecha: null, autoId: widget.currentAuto!.autoId!);
-        await auto.update();
-      } else {
-        auto = await auto.create();
-      }
-
-      for (int i = 0; i < imagenes.length; i++) {
-        var doc = imagenes[i];
-
-        doc.autoId = auto?.autoId;
-
+        showLoader(context);
         if (widget.editing) {
-          await doc.update();
+          await auto.update();
         } else {
-          await doc.create();
+          auto = await auto.create();
         }
-      }
 
-      Navigator.pop(context);
-      if (!widget.editing) {
-        Navigator.pop(context, 'CREATE');
-      } else {
-        Navigator.pop(context, 'UPDATE');
+        for (int i = 0; i < imagenes.length; i++) {
+          var img = imagenes[i];
+
+          img.autoId = auto?.autoId;
+
+          if (img.imagenId == null) {
+            await img.create();
+          }
+        }
+
+        Navigator.pop(context);
+        if (!widget.editing) {
+          Navigator.pop(context, 'CREATE');
+        } else {
+          Navigator.pop(context, 'UPDATE');
+        }
+      } catch (e) {
+        Navigator.pop(context);
+        showSnackBar(context, e.toString());
       }
-    } catch (e) {
-      Navigator.pop(context);
-      print(e);
     }
   }
 
-  initAsync() async {
-    setState(() {
-      loadingContent = true;
-      error = false;
-    });
+  Future<void> initAsync() async {
     try {
-      var res = await Future.wait([
-        Marca.get(),
-        Provincia.get(),
-        TipoAuto.get(),
-        MyColor.get(),
-        Precio.get()
-      ]);
-
-      makes = res[0] as List<Marca>;
-
-      provinces = res[1] as List<Provincia>;
-
-      tipoAutos = res[2] as List<TipoAuto>;
-
-      colors = res[3] as List<MyColor>;
-
-      precios = res[4] as List<Precio>;
-
       if (widget.editing && widget.currentAuto != null) {
-        imagenes = widget.currentAuto?.imagenesColeccion ?? [];
-        print(imagenes);
+        imagenes = [...widget.currentAuto?.imagenesColeccion ?? []];
+
+        imagenModelMetaData = ImagenModelMetaData(imagenes: imagenes);
+
         currentMakeId = widget.currentAuto!.marcaId!;
         currentModelId = widget.currentAuto!.modeloId!;
         currentProvinceId = widget.currentAuto!.provinciaId!;
         currentCiudadId = widget.currentAuto!.ciudadId!;
         currentTipoAutoId = widget.currentAuto!.tipoId!;
         currentAutoColorId = widget.currentAuto!.colorId!;
-        currentPrecioPlataformaId = widget.currentAuto!.precioId!;
+        currentGasolinaId = widget.currentAuto!.combustibleId!;
+        currentTransmisionId = widget.currentAuto!.transmisionId!;
+        currentModelVersionId = widget.currentAuto?.modeloVersionId ?? 0;
         autoConditions.value =
             TextEditingValue(text: widget.currentAuto!.autoCondiciones!);
         autoYear.value =
             TextEditingValue(text: widget.currentAuto!.autoAno!.toString());
-        autoKmIncluido.value = TextEditingValue(
-            text: widget.currentAuto!.autoKmIncluido.toString());
-        autoDescripcion.value =
-            TextEditingValue(text: widget.currentAuto!.autoDescripcion!);
+        precio.value = TextEditingValue(
+            text: widget.currentAuto?.precio?.toStringAsFixed(2) ?? '');
 
-        address.value =
-            TextEditingValue(text: widget.currentAuto?.autoDireccion ?? '');
-
-        place = Place(
-            formattedAddress: address.text,
-            geometry: Geometry(
-                location: Location(
-                    lat: widget.currentAuto?.autoCoorY?.toDouble(),
-                    lng: widget.currentAuto?.autoCoorX?.toDouble())));
+        autoNumeroDePasajeros.value = TextEditingValue(
+            text: widget.currentAuto?.autoNumeroPersonas.toString() ?? '');
+        autoNumeroDeAsientos.value = TextEditingValue(
+            text: widget.currentAuto?.autoNumeroAsientos.toString() ?? '');
+        autoNumeroDePuertas.value = TextEditingValue(
+            text: widget.currentAuto?.autoNumeroPuertas.toString() ?? '');
 
         models = await Modelo.get(marcaId: widget.currentAuto!.marcaId!);
-        var res = await Ciudad.get(provinciaId: currentProvinceId);
-        ciudades = res;
-        waitingModels = false;
-      }
 
-      setState(() {
-        loadingContent = false;
-      });
+        if (widget.currentAuto?.modeloVersionId != null) {
+          modelosVersiones = await ModeloVersion.get(
+              modeloId: widget.currentAuto!.modelo!.modeloId!);
+        }
+        var res = await Ciudad.get(provinciaId: currentProvinceId);
+        waitingCiudades = false;
+        waitingModels = false;
+        waitingVersiones = false;
+        ciudades = res;
+        setState(() {});
+      }
     } catch (e) {
-      setState(() {
-        loadingContent = false;
-        error = true;
-      });
+      rethrow;
     }
   }
 
-  Widget get content {
-    if (loadingContent) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (error) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(Icons.warning,
-                size: 180, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: kDefaultPadding),
-            ElevatedButton(
-                onPressed: () {
-                  initAsync();
-                },
-                child: const Text('REFRESH'))
-          ],
-        ),
-      );
-    }
+  Widget get contentFilled {
     return Form(
+        key: _formKey,
         child: SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-          vertical: kDefaultPadding, horizontal: kDefaultPadding / 2),
-      child: Column(
-        children: [
-          DropdownButtonFormField(
-              value: currentMakeId,
-              decoration: const InputDecoration(
-                  labelText: 'MAKE', border: OutlineInputBorder()),
-              items:
-                  [Marca(marcaId: 0, marcaNombre: 'MAKE'), ...makes].map((e) {
-                return DropdownMenuItem(
-                    value: e.marcaId, child: Text(e.marcaNombre!));
-              }).toList(),
-              onChanged: _onChangedMake),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentModelId,
-              decoration: const InputDecoration(
-                  labelText: 'MODEL', border: OutlineInputBorder()),
-              items: [Modelo(modeloId: 0, modeloNombre: 'MODEL'), ...models]
-                  .map((e) {
-                return DropdownMenuItem(
-                    value: e.modeloId, child: Text(e.modeloNombre!));
-              }).toList(),
-              onChanged: waitingModels ? null : _onChangedModel),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentProvinceId,
-              decoration: const InputDecoration(
-                  labelText: 'PROVINCE', border: OutlineInputBorder()),
-              items: [
-                Provincia(provinciaId: 0, provinciaNombre: 'PROVINCE'),
-                ...provinces
-              ].map((e) {
-                return DropdownMenuItem(
-                    value: e.provinciaId, child: Text(e.provinciaNombre!));
-              }).toList(),
-              onChanged: _onChangedProvince),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentCiudadId,
-              decoration: const InputDecoration(
-                  labelText: 'CITY', border: OutlineInputBorder()),
-              items: [
-                Ciudad(paisId: 0, ciudadId: 0, ciudadNombre: 'CITY'),
-                ...ciudades
-              ].map((e) {
-                return DropdownMenuItem(
-                    value: e.ciudadId, child: Text(e.ciudadNombre!));
-              }).toList(),
-              onChanged: _onChangedCiudad),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentTipoAutoId,
-              decoration: const InputDecoration(
-                  labelText: 'TYPE', border: OutlineInputBorder()),
-              items: [TipoAuto(tipoId: 0, tipoNombre: 'TYPE'), ...tipoAutos]
-                  .map((e) {
-                return DropdownMenuItem(
-                    value: e.tipoId, child: Text(e.tipoNombre!));
-              }).toList(),
-              onChanged: _onChangedTipoAuto),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentAutoColorId,
-              decoration: const InputDecoration(
-                  labelText: 'COLOR', border: OutlineInputBorder()),
-              items: [MyColor(colorId: 0, colorNombre: 'COLOR'), ...colors]
-                  .map((e) {
-                return DropdownMenuItem(
-                    value: e.colorId, child: Text(e.colorNombre!));
-              }).toList(),
-              onChanged: _onChangedAutoColor),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentAutoSeguroId,
-              decoration: const InputDecoration(
-                  labelText: 'SURE', border: OutlineInputBorder()),
-              items: [AutoSeguro(seguroId: 0, seguroNombre: 'SURE'), ...seguros]
-                  .map((e) {
-                return DropdownMenuItem(
-                    value: e.seguroId, child: Text(e.seguroNombre!));
-              }).toList(),
-              onChanged: _onChangedAutoSeguro),
-          const SizedBox(height: kDefaultPadding),
-          DropdownButtonFormField(
-              value: currentPrecioPlataformaId,
-              decoration: const InputDecoration(
-                  labelText: 'PLATFORM PRICE', border: OutlineInputBorder()),
-              items: [
-                Precio(precioId: 0, precioNombre: 'PLATFORM PRICE'),
-                ...precios
-              ].map((e) {
-                return DropdownMenuItem(
-                    value: e.precioId, child: Text(e.precioNombre!));
-              }).toList(),
-              onChanged: _onChangedPrecioPlataforma),
-          const SizedBox(height: kDefaultPadding),
-          TextFormField(
-            controller: autoConditions,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'CONDITIONS',
-                labelText: 'CONDITIONS'),
+          padding: const EdgeInsets.symmetric(
+              vertical: kDefaultPadding, horizontal: kDefaultPadding / 2),
+          child: Column(
+            children: [
+              DropdownButtonFormField(
+                  value: currentMakeId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'MARCA', border: OutlineInputBorder()),
+                  items: [Marca(marcaId: 0, marcaNombre: 'MARCA'), ...marcas]
+                      .map((e) {
+                    return DropdownMenuItem(
+                        value: e.marcaId, child: Text(e.marcaNombre!));
+                  }).toList(),
+                  onChanged: widget.editing ? null : _onChangedMake),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentModelId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'MODELO', border: OutlineInputBorder()),
+                  items: [
+                    Modelo(modeloId: 0, modeloNombre: 'MODELO'),
+                    ...models
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.modeloId, child: Text(e.modeloNombre!));
+                  }).toList(),
+                  onChanged: widget.editing
+                      ? null
+                      : waitingModels
+                          ? null
+                          : _onChangedModel),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentModelVersionId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'VERSION', border: OutlineInputBorder()),
+                  items: [
+                    ModeloVersion(versionId: 0, versionNombre: 'VERSION'),
+                    ...modelosVersiones
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.versionId, child: Text(e.versionNombre!));
+                  }).toList(),
+                  onChanged: widget.editing
+                      ? null
+                      : waitingVersiones
+                          ? null
+                          : _onChangedModelVersion),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentProvinceId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'PROVINCIA', border: OutlineInputBorder()),
+                  items: [
+                    Provincia(provinciaId: 0, provinciaNombre: 'PROVINCIA'),
+                    ...provincias
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.provinciaId, child: Text(e.provinciaNombre!));
+                  }).toList(),
+                  onChanged: _onChangedProvince),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentCiudadId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'CIUDAD', border: OutlineInputBorder()),
+                  items: [
+                    Ciudad(paisId: 0, ciudadId: 0, ciudadNombre: 'CIUDAD'),
+                    ...ciudades
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.ciudadId, child: Text(e.ciudadNombre!));
+                  }).toList(),
+                  onChanged: waitingCiudades ? null : _onChangedCiudad),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentTipoAutoId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'TIPO', border: OutlineInputBorder()),
+                  items: [
+                    TipoAuto(tipoId: 0, tipoNombre: 'TIPO'),
+                    ...tiposAutos
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.tipoId, child: Text(e.tipoNombre!));
+                  }).toList(),
+                  onChanged: _onChangedTipoAuto),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentAutoColorId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'COLOR', border: OutlineInputBorder()),
+                  items: [MyColor(colorId: 0, colorNombre: 'COLOR'), ...colores]
+                      .map((e) {
+                    return DropdownMenuItem(
+                        value: e.colorId, child: Text(e.colorNombre!));
+                  }).toList(),
+                  onChanged: _onChangedAutoColor),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentTransmisionId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'TRANSMISION', border: OutlineInputBorder()),
+                  items: [
+                    Transmision(
+                        transmisionId: 0, transmisionNombre: 'TRANSMISION'),
+                    ...transmisiones
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.transmisionId,
+                        child: Text(e.transmisionNombre!));
+                  }).toList(),
+                  onChanged: (id) {
+                    setState(() {
+                      currentTransmisionId = id ?? 0;
+                    });
+                  }),
+              const SizedBox(height: kDefaultPadding),
+              DropdownButtonFormField(
+                  value: currentGasolinaId,
+                  validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
+                  decoration: const InputDecoration(
+                      labelText: 'COMBUSTIBLE', border: OutlineInputBorder()),
+                  items: [
+                    Combustible(
+                        combustibleId: 0, combustibleNombre: 'COMBUSTIBLE'),
+                    ...combustibles
+                  ].map((e) {
+                    return DropdownMenuItem(
+                        value: e.combustibleId,
+                        child: Text(e.combustibleNombre!));
+                  }).toList(),
+                  onChanged: (id) {
+                    setState(() {
+                      currentGasolinaId = id ?? 0;
+                    });
+                  }),
+              const SizedBox(height: kDefaultPadding),
+              TextFormField(
+                controller: autoYear,
+                validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: '2000',
+                    labelText: 'ANO'),
+              ),
+              const SizedBox(height: kDefaultPadding),
+              TextFormField(
+                controller: precio,
+                validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'PRECIO',
+                    hintText: '0.00'),
+              ),
+              const SizedBox(height: kDefaultPadding),
+              TextFormField(
+                controller: autoNumeroDePasajeros,
+                validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'NUMERO DE PASAJEROS',
+                    hintText: '0'),
+              ),
+              const SizedBox(height: kDefaultPadding),
+              TextFormField(
+                controller: autoNumeroDeAsientos,
+                validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'NUMERO DE ASIENTOS',
+                    hintText: '0'),
+              ),
+              const SizedBox(height: kDefaultPadding),
+              TextFormField(
+                controller: autoNumeroDePuertas,
+                validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'NUMERO DE PUERTAS',
+                    hintText: '0'),
+              ),
+              const SizedBox(height: kDefaultPadding),
+              ImagenSelectorWidget(
+                context: context,
+                initialValue: imagenModelMetaData,
+                validator: (val) {
+                  if (val == null) {
+                    return 'CAMPO OBLIGATORIO';
+                  }
+
+                  if (val.errorEvent == 'IMAGE_SIZE_NOT_ALLOWED') {
+                    return 'IMAGENES NO VALIDAS';
+                  }
+                },
+                onChanged: (data) {
+                  imagenes = data?.imagenes ?? [];
+                },
+              ),
+              const SizedBox(height: kDefaultPadding),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: AppCustomButton(
+                  onPressed: _onSubmit,
+                  children: [Text(btnTitle)],
+                ),
+              ),
+              const SizedBox(height: kDefaultPadding)
+            ],
           ),
-          const SizedBox(height: kDefaultPadding),
-          TextFormField(
-            controller: autoYear,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'YEAR',
-                labelText: 'YEAR'),
-          ),
-          const SizedBox(height: kDefaultPadding),
-          TextFormField(
-            controller: autoKmIncluido,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'MILEAGE',
-                labelText: 'MILEAGE'),
-          ),
-          const SizedBox(height: kDefaultPadding),
-          TextFormField(
-            controller: autoDescripcion,
-            keyboardType: TextInputType.multiline,
-            maxLines: 5,
-            minLines: 5,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'DESCRIPTION',
-                labelText: 'DESCRIPTION'),
-          ),
-          const SizedBox(height: kDefaultPadding),
-          AddressSelectorWidget(
-              controller: address,
-              onChanged: (xplace) {
-                place = place;
-              }),
-          const SizedBox(height: kDefaultPadding),
-          ImagenSelectorWidget(
-            imagenes: imagenes,
-            onChanged: (ximagenes) {
-              imagenes = ximagenes;
-              print(imagenes);
-            },
-          ),
-          const SizedBox(height: kDefaultPadding),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(onPressed: _onSubmit, child: Text(btnTitle)),
-          ),
-          const SizedBox(height: kDefaultPadding)
-        ],
-      ),
-    ));
+        ));
   }
 
   String get titleAppBar {
-    return widget.editing ? 'CAR UPDATING...' : 'CAR CREATING';
+    return widget.editing ? 'ACTUALIZANDO AUTO...' : 'CREANDO AUTO...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE NOW' : 'CREATE NOW';
+    return widget.editing ? 'EDITAR AUTO' : 'CREAR AUTO';
+  }
+
+  _reload() {
+    setState(() {
+      future = initAsync();
+    });
   }
 
   @override
   void initState() {
-    initAsync();
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(titleAppBar),
-          titleSpacing: 0,
+        appBar: AppBarWidget(
+          context: context,
+          title: titleAppBar,
+          actions: const [SizedBox(width: kDefaultPadding * 3)],
         ),
-        body: content);
+        body: FutureBuilder(
+            future: future,
+            builder: (ctx, s) {
+              if (s.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              if (s.hasError) {
+                return GlobalErrorsView(
+                    errorType: (s.error as DioException).type,
+                    onReload: () {
+                      _reload();
+                    });
+              }
+              return contentFilled;
+            }));
   }
 }

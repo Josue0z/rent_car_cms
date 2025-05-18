@@ -8,10 +8,12 @@ import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/models/beneficiario.dart';
 import 'package:rent_car_cms/models/ciudad.dart';
 import 'package:rent_car_cms/models/color.dart';
+import 'package:rent_car_cms/models/combustible.dart';
 import 'package:rent_car_cms/models/imagen.model.dart';
 import 'package:rent_car_cms/models/marca.dart';
 import 'package:rent_car_cms/models/megusta.dart';
 import 'package:rent_car_cms/models/modelo.dart';
+import 'package:rent_car_cms/models/modelo.version.dart';
 import 'package:rent_car_cms/models/precio.dart';
 import 'package:rent_car_cms/models/provincia.dart';
 import 'package:rent_car_cms/models/tipo.auto.dart';
@@ -51,14 +53,14 @@ class Auto {
   num? autoCoorX;
   num? autoCoorY;
   int? precioId;
-  Precio? precio;
+  num? precio;
   num? precioPlataforma;
   int? seguroId;
   String? seguroNombre;
   int? autoTransmision;
   int? autoDondeSea;
   String? autoCondiciones;
-  String? autoKmIncluido;
+  int? autoKmIncluido;
   int? imagen;
   String? urlImagenPrincipal;
   List<ImagenModel>? imagenesColeccion;
@@ -80,6 +82,13 @@ class Auto {
   int? transmisionId;
   Transmision? transmision;
   List<AutoMegustaModel>? autosMeGustas;
+
+  int? modeloVersionId;
+  ModeloVersion? modeloVersion;
+
+  int? combustibleId;
+
+  Combustible? combustible;
 
   Auto(
       {this.autoId,
@@ -140,10 +149,22 @@ class Auto {
       this.ciudad,
       this.transmisionId,
       this.transmision,
-      this.autosMeGustas});
+      this.autosMeGustas,
+      this.modeloVersionId,
+      this.modeloVersion,
+      this.combustibleId,
+      this.combustible});
+
+  String get modeloNombreDisplay {
+    if (modeloVersion != null) {
+      return modeloVersion?.versionNombre ?? '';
+    }
+
+    return modelo?.modeloNombre ?? '';
+  }
 
   String get title {
-    return '${marca?.marcaNombre} ${modelo?.modeloNombre} $autoAno';
+    return '${marca?.marcaNombre} $modeloNombreDisplay $autoAno';
   }
 
   String get estadoNombre {
@@ -156,9 +177,9 @@ class Auto {
     }
 
     if (autoEstatus == 3) {
-      return 'En Revision';
+      return 'En Revision'.tr;
     }
-    return '';
+    return '<None>';
   }
 
   String get transmisionLabel {
@@ -195,17 +216,25 @@ class Auto {
     }
   }
 
-  static Future<List<Auto>> get({pagina = 1, cantidad = 10}) async {
+  static Future<List<Auto>> get(
+      {pagina = 1,
+      cantidad = 10,
+      marcaId = 0,
+      modeloId = 0,
+      modeloVersionId = 0,
+      estado = 0,
+      beneficiarioId = 0}) async {
     try {
-      var res = await rentApi.get('/autos/todos');
-      print(res);
+      var res = await rentApi.get(
+          '/autos/todos?beneficiarioId=$beneficiarioId&marcaId=$marcaId&modeloId=$modeloId&modeloVersionId=$modeloVersionId&estado=$estado');
+
       if (res.statusCode == 200) {
         return (res.data as List).map((e) => Auto.fromMap(e)).toList();
       }
       return [];
     } on DioException catch (e) {
-      print(e.response?.data);
-      throw e.response?.data['error'] ?? e.message;
+      print(e);
+      rethrow;
     }
   }
 
@@ -265,7 +294,7 @@ class Auto {
       int? autoTransmision,
       int? autoDondeSea,
       String? autoCondiciones,
-      String? autoKmIncluido,
+      int? autoKmIncluido,
       int? imagen,
       String? urlImagenPrincipal,
       List<ImagenModel>? imagenesColeccion,
@@ -360,8 +389,7 @@ class Auto {
       'autoDireccion': autoDireccion,
       'autoCoorX': autoCoorX,
       'autoCoorY': autoCoorY,
-      'precioId': precioId,
-      'precioPlataforma': precioPlataforma,
+      'precio': precio,
       'seguroId': seguroId,
       'seguroNombre': seguroNombre,
       'autoTransmision': autoTransmision,
@@ -386,7 +414,10 @@ class Auto {
       'factorFormaId': factorFormaId,
       'marca': marca?.toMap(),
       'modelo': modelo?.toMap(),
-      'factorFormaNombre': factorFormaNombre
+      'factorFormaNombre': factorFormaNombre,
+      'modeloVersionId': modeloVersionId,
+      'combustibleId': combustibleId,
+      'transmisionId': transmisionId
     };
   }
 
@@ -531,25 +562,14 @@ class Auto {
         provinciaId:
             map['provinciaId'] != null ? map['provinciaId'] as int : null,
         ciudadId: map['ciudadId'] != null ? map['ciudadId'] as int : null,
-        autoDireccion: map['autoDireccion'] != null
-            ? map['autoDireccion'] as String
-            : null,
         autoCoorX: double.parse(map['autoCoorX']),
         autoCoorY: double.parse(map['autoCoorY']),
-        precioId: map['precioId'] != null ? map['precioId'] as int : null,
-        precio: map['precio'] != null ? Precio.fromMap(map['precio']) : null,
+        precio: map['precio'] != null ? double.parse(map['precio']) : null,
         seguroId: map['seguroId'] != null ? map['seguroId'] as int : null,
-        autoTransmision: map['autoTransmision'] != null
-            ? map['autoTransmision'] as int
-            : null,
-        autoDondeSea:
-            map['autoDondeSea'] != null ? map['autoDondeSea'] as int : null,
         autoCondiciones: map['autoCondiciones'] != null
             ? map['autoCondiciones'] as String
             : null,
-        autoKmIncluido: map['autoKmIncluido'] != null
-            ? map['autoKmIncluido'] as String
-            : null,
+        autoKmIncluido: int.parse(map['autoKmIncluido']),
         imagenesColeccion: (map['imagenes'] as List)
             .map((e) => ImagenModel.fromMap(e))
             .toList()
@@ -565,7 +585,6 @@ class Auto {
                 .toList()
                 .cast<Valoracion>()
             : null,
-        svgMarca: map['svgMarca'] != null ? map['svgMarca'] as String : null,
         precioViejo:
             map['precioViejo'] != null ? map['precioViejo'] as num : null,
         autoNumeroViajes: map['autoNumeroViajes'],
@@ -588,6 +607,14 @@ class Auto {
                 .map((e) => AutoMegustaModel.fromMap(e))
                 .toList()
                 .cast<AutoMegustaModel>()
+            : null,
+        modeloVersionId: map['modeloVersionId'],
+        modeloVersion: map['modeloVersion'] != null
+            ? ModeloVersion.fromMap(map['modeloVersion'])
+            : null,
+        combustibleId: map['combustibleId'],
+        combustible: map['combustible'] != null
+            ? Combustible.fromMap(map['combustible'])
             : null);
   }
 }
@@ -802,6 +829,36 @@ class Transmision {
       transmisionNombre: transmisionNombre ?? this.transmisionNombre,
       fhCreacion: fhCreacion ?? this.fhCreacion,
     );
+  }
+
+  static Future<List<Transmision>> get() async {
+    try {
+      var res = await rentApi.get('/transmisiones/todos');
+      if (res.statusCode == 200) {
+        return (res.data as List).map((e) => Transmision.fromMap(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> create() async {
+    try {
+      await rentApi.post('/transmisiones/crear',
+          data: toMap(), options: Options(contentType: 'application/json'));
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> update() async {
+    try {
+      await rentApi.put('/transmisiones/modificar/$transmisionId',
+          data: toMap(), options: Options(contentType: 'application/json'));
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toMap() {

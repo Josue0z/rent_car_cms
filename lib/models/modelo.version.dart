@@ -21,8 +21,8 @@ class ModeloVersion {
       var res =
           await rentApi.get('/modelos-versiones/todos?modeloId=$modeloId');
       return (res.data as List).map((e) => ModeloVersion.fromMap(e)).toList();
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 

@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:rent_car_cms/modals/province.editor_modal.dart';
 import 'package:rent_car_cms/models/provincia.dart';
 import 'package:rent_car_cms/pages/citys_page.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class ProvincesPage extends StatefulWidget {
   const ProvincesPage({super.key});
@@ -12,7 +16,8 @@ class ProvincesPage extends StatefulWidget {
 }
 
 class _ProvincesPageState extends State<ProvincesPage> {
-  late Future<List<Provincia>> future;
+  List<Provincia> provincias = [];
+  late Future future;
 
   Widget get loadingView {
     return const Center(
@@ -20,10 +25,10 @@ class _ProvincesPageState extends State<ProvincesPage> {
     );
   }
 
-  Widget contentView(List<Provincia> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = provincias[index];
           return ListTile(
               title: Text(item.provinciaNombre!),
               trailing: Wrap(
@@ -55,28 +60,7 @@ class _ProvincesPageState extends State<ProvincesPage> {
               ));
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = Provincia.get();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: provincias.length);
   }
 
   _showProvinceEditor() async {
@@ -85,28 +69,50 @@ class _ProvincesPageState extends State<ProvincesPage> {
           context: context, builder: (ctx) => ProvinceEditorModal());
 
       if (res == 'CREATE') {
-        setState(() {
-          future = Provincia.get();
-        });
+        _reload();
       }
     } catch (e) {
       print(e);
     }
   }
 
+  _initAsync() async {
+    try {
+      provincias = await Provincia.get();
+      setState(() {});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  _reload() {
+    setState(() {
+      future = _initAsync();
+    });
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
   @override
   void initState() {
-    setState(() {
-      future = Provincia.get();
-    });
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PROVINCES'),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'PROVINCIAS',
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -115,15 +121,14 @@ class _ProvincesPageState extends State<ProvincesPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError || s.data == null) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(s.data!);
+                return contentView;
               }),
           onRefresh: () async {
-            setState(() {
-              future = Provincia.get();
-            });
+            _reload();
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showProvinceEditor,
         child: const Icon(Icons.add),

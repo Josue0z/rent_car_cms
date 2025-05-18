@@ -15,18 +15,19 @@ class Cliente {
   String? clienteTelefono2;
   int? clienteEstatus;
   String? clienteToken;
-  Cliente({
-    this.clienteId,
-    this.clienteIdentificacion,
-    this.clienteTipo,
-    this.clienteNombre,
-    this.paisId,
-    this.fhCreacion,
-    this.clienteTelefono1,
-    this.clienteTelefono2,
-    this.clienteEstatus,
-    this.clienteToken,
-  });
+  String? clienteCorreo;
+  Cliente(
+      {this.clienteId,
+      this.clienteIdentificacion,
+      this.clienteTipo,
+      this.clienteNombre,
+      this.paisId,
+      this.fhCreacion,
+      this.clienteTelefono1,
+      this.clienteTelefono2,
+      this.clienteEstatus,
+      this.clienteToken,
+      this.clienteCorreo});
 
   static Future<Cliente?> findById(int id) async {
     try {
@@ -87,6 +88,7 @@ class Cliente {
       'clienteTelefono2': clienteTelefono2,
       'clienteEstatus': clienteEstatus,
       'clienteToken': clienteToken,
+      'clienteCorreo': clienteCorreo
     };
     if (clienteId != null) {
       map.addAll({'clienteId': clienteId});
@@ -96,28 +98,29 @@ class Cliente {
 
   factory Cliente.fromMap(Map<String, dynamic> map) {
     return Cliente(
-      clienteId: map['clienteId'] != null ? map['clienteId'] as int : null,
-      clienteIdentificacion: map['clienteIdentificacion'] != null
-          ? map['clienteIdentificacion'] as String
-          : null,
-      clienteTipo:
-          map['clienteTipo'] != null ? map['clienteTipo'] as int : null,
-      clienteNombre:
-          map['clienteNombre'] != null ? map['clienteNombre'] as String : null,
-      paisId: map['paisId'] != null ? map['paisId'] as int : null,
-      fhCreacion:
-          map['fhCreacion'] != null ? map['fhCreacion'] as String : null,
-      clienteTelefono1: map['clienteTelefono1'] != null
-          ? map['clienteTelefono1'] as String
-          : null,
-      clienteTelefono2: map['clienteTelefono2'] != null
-          ? map['clienteTelefono2'] as String
-          : null,
-      clienteEstatus:
-          map['clienteEstatus'] != null ? map['clienteEstatus'] as int : null,
-      clienteToken:
-          map['clienteToken'] != null ? map['clienteToken'] as String : null,
-    );
+        clienteId: map['clienteId'] != null ? map['clienteId'] as int : null,
+        clienteIdentificacion: map['clienteIdentificacion'] != null
+            ? map['clienteIdentificacion'] as String
+            : null,
+        clienteTipo:
+            map['clienteTipo'] != null ? map['clienteTipo'] as int : null,
+        clienteNombre: map['clienteNombre'] != null
+            ? map['clienteNombre'] as String
+            : null,
+        paisId: map['paisId'] != null ? map['paisId'] as int : null,
+        fhCreacion:
+            map['fhCreacion'] != null ? map['fhCreacion'] as String : null,
+        clienteTelefono1: map['clienteTelefono1'] != null
+            ? map['clienteTelefono1'] as String
+            : null,
+        clienteTelefono2: map['clienteTelefono2'] != null
+            ? map['clienteTelefono2'] as String
+            : null,
+        clienteEstatus:
+            map['clienteEstatus'] != null ? map['clienteEstatus'] as int : null,
+        clienteToken:
+            map['clienteToken'] != null ? map['clienteToken'] as String : null,
+        clienteCorreo: map['clienteCorreo']);
   }
 
   String toJson() => json.encode(toMap());

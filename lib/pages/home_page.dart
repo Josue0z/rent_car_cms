@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rent_car_cms/controllers/ui.controller.dart';
-import 'package:rent_car_cms/views/profile.view.dart';
+import 'package:rent_car_cms/pages/benefificary.map.location.selector.page.dart';
+import 'package:rent_car_cms/views/beneficiaries.autos.view.dart';
 import 'package:rent_car_cms/pages/sign.in.page.dart';
 import 'package:rent_car_cms/settings.dart';
-import 'package:rent_car_cms/views/content.administrator_view.dart';
-import 'package:rent_car_cms/views/me.cars_view.dart';
+import 'package:rent_car_cms/views/beneficiary.bank.details.view.dart';
 import 'package:rent_car_cms/views/me.clients.bookings_view.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,28 +18,24 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> items = [
     {
-      'title': 'MY CARS',
+      'title': 'Tus Autos',
       'icon': Icons.directions_car,
-      'view': const MeCarsView(titleView: 'MY CARS')
+      'view': const BeneficiariesAutosView(titleView: 'Tus Autos')
     },
     {
-      'title': 'YOUR BOOKINGS',
+      'title': 'Tus Reservas',
       'icon': Icons.browse_gallery,
-      'view': const MeClientsBookingsView(titleView: 'YOUR BOOKINGS')
+      'view': const MeClientsBookingsView(titleView: 'Tus Reservas')
     },
     {
-      'title': 'PROFILE SETTINGS',
-      'icon': Icons.person_2,
-      'view': const ProfileSettingsPage(
-        titleView: 'PROFILE SETTINGS',
-      )
+      'title': 'Ubicacion',
+      'icon': Icons.location_on_outlined,
+      'view': const BeneficiaryMapLocationSelectorPage()
     },
     {
-      'title': 'CONTENT ADMINISTRATOR',
-      'icon': Icons.settings,
-      'view': const ContentAdministratorView(
-        titleView: 'CONTENT ADMINISTRATOR',
-      )
+      'title': 'Datos Bancarios',
+      'icon': Icons.account_balance_outlined,
+      'view': const BeneficiaryBankDetailsView(titleView: 'Datos Bancarios')
     },
   ];
 
@@ -47,19 +43,11 @@ class _HomePageState extends State<HomePage> {
   dynamic currentPage;
   int currentPageIndex = 0;
 
-  late UIController uiController = Get.find<UIController>();
+  final UIController uiController = Get.find<UIController>();
 
   loggout() async {
     try {
-      await storage.delete(key: 'AUTH_TOKEN');
-      await storage.delete(key: 'AUTH_ID');
-      uiController.usuario.value = null;
-      uiController.currentUserLoggedModel.value = null;
-      uiController.logged.value = false;
-      Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (ctx) => const LoginPage()),
-          (route) => false);
+      Get.offAll(() => const LoginPage());
     } catch (e) {
       print(e);
     }
@@ -70,20 +58,20 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               Container(
-                  color: const Color.fromARGB(255, 246, 244, 244),
+                  color: const Color(0xFFF5F5F5),
                   width: double.infinity,
                   height: 300,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 40,
-                        backgroundColor: const Color.fromRGBO(246, 200, 200, 1),
+                        backgroundColor: Color(0xFFF0EFEF),
                         child: Icon(
-                          Icons.person_2_outlined,
-                          color: Theme.of(context).primaryColor,
-                          size: 29,
+                          Icons.account_circle_rounded,
+                          color: Colors.black12,
+                          size: 40,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -95,6 +83,19 @@ class _HomePageState extends State<HomePage> {
                             color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.w500,
                             fontSize: 18),
+                      ),
+                      const SizedBox(height: kDefaultPadding),
+                      Container(
+                        padding: const EdgeInsets.all(kDefaultPadding / 2),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: uiController.usuario.value?.color
+                                .withOpacity(0.04)),
+                        child: Text(
+                            uiController.usuario.value?.usuarioEstatusNombre ??
+                                '',
+                            style: TextStyle(
+                                color: uiController.usuario.value?.color)),
                       )
                     ],
                   )),
@@ -104,7 +105,8 @@ class _HomePageState extends State<HomePage> {
                       itemBuilder: (ctx, index) {
                         return ListTile(
                           selected: currentPageIndex == index,
-                          selectedTileColor: const Color(0x1FB3B3B3),
+                          selectedTileColor:
+                              const Color.fromARGB(255, 243, 243, 243),
                           leading: Icon(items[index]['icon'],
                               color: currentPageIndex == index
                                   ? Theme.of(context).primaryColor
@@ -125,7 +127,7 @@ class _HomePageState extends State<HomePage> {
               ListTile(
                 leading: Icon(Icons.exit_to_app,
                     color: Theme.of(context).primaryColor),
-                title: const Text('LOGGOUT'),
+                title: const Text('Cerrar Sesion'),
                 onTap: loggout,
               )
             ],
@@ -137,6 +139,26 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     currentPage = items[0]['view'];
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    marcas = [];
+    provincias = [];
+
+    tiposAutos = [];
+
+    colores = [];
+
+    modelosVersiones = [];
+
+    bancos = [];
+    bancosCuentaTipo = [];
+
+    uiController.usuario = Rx(null);
+    uiController.logged = RxBool(false);
+
+    super.dispose();
   }
 
   @override

@@ -1,12 +1,16 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:rent_car_cms/modals/filter.auto.modal.dart';
+import 'package:rent_car_cms/utils/functions.dart';
 import 'package:rent_car_cms/models/auto.dart';
 import 'package:rent_car_cms/pages/autos_page_confirm.dart';
-import 'package:rent_car_cms/pages/autos_page_editor.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class AutosPage extends StatefulWidget {
   const AutosPage({super.key});
@@ -20,35 +24,150 @@ class _AutosPageState extends State<AutosPage> {
 
   Future? currentFuture;
 
-  _showAddAutoPage() async {
-    try {
-      var res = await Navigator.push(
-          context, MaterialPageRoute(builder: (ctx) => AutosPageEditor()));
+  int currentMarcaId = 0;
+  int currentModeloId = 0;
+  int currentModeloVersionId = 0;
+  int estado = 0;
 
-      switch (res) {
-        case 'CREATE':
-          setState(() {
-            currentFuture = Auto.get();
-          });
-          break;
-      }
+  _reload() async {
+    setState(() {
+      currentMarcaId = 0;
+      currentModeloId = 0;
+      currentModeloVersionId = 0;
+      estado = 0;
+      modelos = [];
+      modelosVersiones = [];
+      currentFuture = _initAsync();
+    });
+  }
+
+  Future<void> _initAsync() async {
+    try {
+      autos = await Auto.get(
+          marcaId: currentMarcaId,
+          modeloId: currentModeloId,
+          modeloVersionId: currentModeloVersionId,
+          estado: estado);
+      setState(() {});
     } catch (e) {
-      print(e);
+      rethrow;
     }
+  }
+
+  Widget get contentView {
+    return RefreshIndicator(
+        child: CustomScrollView(
+          slivers: [
+            SliverList.separated(
+                itemCount: autos.length,
+                separatorBuilder: (ctx, i) => const Divider(),
+                itemBuilder: (ctx, index) {
+                  var auto = autos[index];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: kDefaultPadding / 2,
+                        horizontal: kDefaultPadding / 2),
+                    leading: Container(
+                      width: 50,
+                      height: 50,
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black12),
+                      child: Image.network(
+                          auto.imagenesColeccion!.first.urlImagen,
+                          fit: BoxFit.cover),
+                    ),
+                    title: Text(auto.title),
+                    subtitle: Text('${auto.beneficiario?.beneficiarioNombre}'),
+                    trailing: Wrap(
+                      children: [
+                        IconButton(
+                            onPressed: () async {
+                              Get.to(() => AutosPageConfirm(
+                                    auto: auto,
+                                    onUpdate: _initAsync,
+                                  ));
+                            },
+                            icon: const Icon(Icons.visibility)),
+                        Container(
+                          padding: const EdgeInsets.all(kDefaultPadding),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: auto.colorEstatus.withOpacity(0.04)),
+                          child: Text(
+                            auto.estadoNombre,
+                            style: TextStyle(
+                                color: auto.colorEstatus,
+                                fontWeight: kLabelsFontWeight),
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                })
+          ],
+        ),
+        onRefresh: () => _reload());
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
   }
 
   @override
   void initState() {
-    setState(() {
-      currentFuture = Auto.get();
-    });
+    _reload();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    modelos = [];
+    modelosVersiones = [];
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('CARS')),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'AUTOS',
+        actions: [
+          IconButton(
+              onPressed: () async {
+                var res = await showDialog(
+                    context: context,
+                    builder: (ctx) {
+                      return FilterAutoModalWidget(
+                          currentMarcaId: currentMarcaId,
+                          currentModeloId: currentModeloId,
+                          currentModeloVersionId: currentModeloVersionId,
+                          currentEstado: estado);
+                    });
+
+                if (res != null) {
+                  try {
+                    currentMarcaId = res['marcaId'];
+                    currentModeloId = res['modeloId'];
+                    currentModeloVersionId = res['modeloVersionId'];
+                    estado = res['estado'];
+                    setState(() {
+                      currentFuture = _initAsync();
+                    });
+                  } catch (_) {}
+                }
+              },
+              icon: const Icon(Icons.tune_outlined)),
+          const SizedBox(width: kDefaultPadding)
+        ],
+      ),
       body: FutureBuilder(
           future: currentFuture,
           builder: (ctx, snapshot) {
@@ -58,88 +177,11 @@ class _AutosPageState extends State<AutosPage> {
               );
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(Icons.warning,
-                        size: 100, color: Theme.of(context).colorScheme.error),
-                    const SizedBox(
-                      height: kDefaultPadding,
-                    ),
-                    const SizedBox(height: kDefaultPadding),
-                    ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            currentFuture = Auto.get();
-                          });
-                        },
-                        child: const Text('REFRESH'))
-                  ],
-                ),
-              );
+              return errorView(snapshot.error as DioException);
             }
 
             if (snapshot.connectionState == ConnectionState.done) {
-              return RefreshIndicator(
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverList.separated(
-                          itemCount: snapshot.data.length,
-                          separatorBuilder: (ctx, i) => const Divider(),
-                          itemBuilder: (ctx, index) {
-                            var auto = snapshot.data[index] as Auto;
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .secondary
-                                    .withOpacity(0.04),
-                                child: SvgPicture.memory(
-                                    base64Decode(auto.marca?.marcaLogo ?? ''),
-                                    width: 24,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary),
-                              ),
-                              title: Text(auto.title),
-                              subtitle: Text(
-                                  '${auto.beneficiario?.beneficiarioNombre}'),
-                              trailing: Wrap(
-                                children: [
-                                  IconButton(
-                                      onPressed: () async {
-                                        var res = Get.to(() => AutosPageConfirm(
-                                              auto: auto,
-                                            ));
-                                      },
-                                      icon: const Icon(Icons.visibility)),
-                                  Container(
-                                    padding:
-                                        const EdgeInsets.all(kDefaultPadding),
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
-                                        color: auto.colorEstatus
-                                            .withOpacity(0.04)),
-                                    child: Text(
-                                      auto.estadoNombre,
-                                      style: TextStyle(
-                                          color: auto.colorEstatus,
-                                          fontWeight: kLabelsFontWeight),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            );
-                          })
-                    ],
-                  ),
-                  onRefresh: () async {
-                    setState(() {
-                      currentFuture = Auto.get();
-                    });
-                  });
+              return contentView;
             }
             return Container();
           }),

@@ -1,6 +1,19 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rent_car_cms/modals/loading.modal.dart';
+import 'package:rent_car_cms/controllers/ui.controller.dart';
+import 'package:rent_car_cms/models/auto.dart';
+import 'package:rent_car_cms/models/banco.cuenta.tipo.dart';
+import 'package:rent_car_cms/models/color.dart';
+import 'package:rent_car_cms/models/combustible.dart';
+import 'package:rent_car_cms/models/marca.dart';
+import 'package:rent_car_cms/models/tipo.auto.dart';
+import 'package:rent_car_cms/pages/email.verification.page.dart';
+import 'package:rent_car_cms/pages/home_page.dart';
+import 'package:rent_car_cms/pages/phone.verification.page.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/utils/functions.dart';
 import 'package:rent_car_cms/models/banco.dart';
 import 'package:rent_car_cms/models/beneficiario.dart';
 import 'package:rent_car_cms/models/ciudad.dart';
@@ -11,6 +24,7 @@ import 'package:rent_car_cms/models/provincia.dart';
 import 'package:rent_car_cms/models/usuario.dart';
 import 'package:rent_car_cms/pages/sign.in.page.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/google.map.widget.dart';
 import 'package:rent_car_cms/widgets/media.selector.widget.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,17 +38,27 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  Future? future;
+
+  Map<String, dynamic>? dir;
+
   List<Map<String, dynamic>> documentsTypes = [
     {
-      "documentoId": 5,
-      "documentoTipo": 2,
+      "documentoTipo": 1,
       "documentoNombre": "Cedula / Pasaporte",
-      "documentoDescripcion": "Indique su documento de identidad o pasaporte",
-      "documentoEstatus": 1
+      "documentoDescripcion": "Indique su documento de identidad o pasaporte"
+    },
+    {
+      "documentoTipo": 3,
+      "documentoNombre": "Certificacion de inscripcion del contribuyente",
+      "documentoDescripcion":
+          "Indique su certificacion de inscripcion del contribuyente"
     }
   ];
 
-  TextEditingController fullname = TextEditingController();
+  TextEditingController rncOrId = TextEditingController();
+
+  TextEditingController name = TextEditingController();
 
   TextEditingController username = TextEditingController();
 
@@ -44,10 +68,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   TextEditingController bankNum = TextEditingController();
 
-  bool loadingContent = true;
-
-  bool errorStatus = false;
-
   List<Pais> paises = [];
 
   List<Provincia> provincias = [];
@@ -55,6 +75,8 @@ class _SignUpPageState extends State<SignUpPage> {
   List<Ciudad> ciudades = [];
 
   List<Banco> bancos = [];
+
+  List<BancoCuentaTipo> bancoCuentaTipos = [];
 
   int currentPaisId = 0;
 
@@ -64,7 +86,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
   int currentBancoId = 0;
 
-  List<Documento> documentos = [];
+  int currentBancoCuentaTipo = 0;
+
+  List<DocumentoModel> documentos = [];
 
   String phone1 = '';
   String phone2 = '';
@@ -74,61 +98,76 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> onSubmit() async {
+    var controller = Get.find<UIController>();
     try {
+      var beneficiario = Beneficiario(
+        beneficiarioNombre: name.text,
+        beneficiarioIdentificacion: iden.text,
+        paisId: 214,
+        proviciaId: currentProvinciaId,
+        ciudadId: currentCiudadId,
+        bancoId: currentBancoId,
+        beneficiarioCuentaTipo: currentBancoCuentaTipo,
+        beneficiarioCuentaNo: bankNum.text,
+        beneficiarioCoorX: dir?['dirX'],
+        beneficiarioCoorY: dir?['dirY'],
+        beneficiarioDireccion: dir?['nombre'],
+        beneficiarioCorreo: username.text,
+        beneficiarioTelefono: phone1,
+        beneficiarioFecha: DateTime.now().toIso8601String(),
+      );
+
+      var usuario = Usuario(
+          usuarioLogin: username.text,
+          usuarioClave: password.text,
+          usuarioTipo: 2,
+          beneficiario: beneficiario,
+          fhCreacion: DateTime.now().toIso8601String());
+
+      /* var isEmail =
+          await Get.to(() => EmailConfirmationScreen(usuario: usuario));
+
+      if (isEmail != null && isEmail) {
+        var isPhone =
+            await Get.to(() => PhoneConfirmationScreen(usuario: usuario));
+
+        if (isPhone != null && isPhone) {
+       
+        }
+      }*/
       showLoader(context);
-      if (await Permission.location.request().isGranted) {
-        var position = await Geolocator.getCurrentPosition();
-        var lat = position.latitude;
-        var long = position.longitude;
-        var geoCode = await GeoCode.findPlace(LatLng(lat, long));
-        var result = geoCode.results?.first;
-        var address = result?.formattedAddress;
 
-        Navigator.pop(context);
+      var xusuario = await usuario.createBe();
+      controller.usuario.value = xusuario;
 
-        var beneficiario = Beneficiario(
-            beneficiarioNombre: fullname.text,
-            beneficiarioIdentificacion: iden.text,
-            beneficiarioTipo: 1,
-            paisId: currentPaisId,
-            proviciaId: currentProvinciaId,
-            ciudadId: currentCiudadId,
-            bancoId: currentBancoId,
-            beneficiarioCuentaTipo: 1,
-            beneficiarioCuentaNo: bankNum.text,
-            beneficiarioFecha: DateTime.now().toIso8601String(),
-            beneficiarioCoorX: long,
-            beneficiarioCoorY: lat,
-            beneficiarioEstatus: 1,
-            beneficiarioAutoGestion: 1,
-            beneficiarioMaster: 1,
-            beneficiarioDireccion: address);
-
-        var usuario = Usuario(
-            usuarioLogin: username.text,
-            usuarioClave: password.text,
-            usuarioEstatus: 1,
-            usuarioTipo: 2,
-            beneficiario: beneficiario,
-            fhCreacion: DateTime.now().toIso8601String());
-
-        showLoader(context);
-
-        await usuario.createBe();
-
-        Navigator.pop(context);
-
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('USUARIO CREADO!')));
-
-        await Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (ctx) => const LoginPage()),
-            (_) => false);
+      for (int i = 0; i < documentos.length; i++) {
+        var doc = documentos[i];
+        doc.usuarioId = xusuario?.usuarioId;
+        await doc.create();
       }
+
+      if (xusuario?.usuarioTipo != 3) {
+        marcas = await Marca.get();
+
+        provincias = await Provincia.get();
+
+        colores = await MyColor.get();
+
+        tiposAutos = await TipoAuto.get();
+
+        combustibles = await Combustible.get();
+
+        transmisiones = await Transmision.get();
+
+        bancos = await Banco.get();
+
+        bancosCuentaTipo = await BancoCuentaTipo.get();
+      }
+
+      await Get.offAll(() => const HomePage());
     } catch (e) {
       Navigator.pop(context);
-      print(e);
+      showSnackBar(context, e.toString());
     }
   }
 
@@ -151,37 +190,31 @@ class _SignUpPageState extends State<SignUpPage> {
     });
   }
 
-  initAsync() async {
-    setState(() {
-      loadingContent = true;
-      errorStatus = false;
-    });
+  _initAsync() async {
     try {
-      List<dynamic> list =
-          await Future.wait([Pais.get(), Provincia.get(), Banco.get()]);
+      List<dynamic> list = await Future.wait(
+          [Provincia.get(), Banco.get(), BancoCuentaTipo.get()]);
 
-      paises = list[0];
+      provincias = list[0];
 
-      provincias = list[1];
+      bancos = list[1];
+      bancoCuentaTipos = list[2];
 
-      bancos = list[2];
-
-      setState(() {
-        loadingContent = false;
-        errorStatus = false;
-      });
+      setState(() {});
     } catch (e) {
-      setState(() {
-        loadingContent = false;
-        errorStatus = true;
-      });
       print(e);
     }
   }
 
+  _reload() {
+    setState(() {
+      future = _initAsync();
+    });
+  }
+
   @override
   void initState() {
-    initAsync();
+    _reload();
     super.initState();
   }
 
@@ -189,20 +222,6 @@ class _SignUpPageState extends State<SignUpPage> {
     return const Center(
       child: CircularProgressIndicator(),
     );
-  }
-
-  Widget get contentError {
-    return Center(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.warning,
-            size: 150, color: Theme.of(context).colorScheme.error),
-        const SizedBox(height: 20),
-        ElevatedButton(onPressed: initAsync, child: const Text('RELOAD'))
-      ],
-    ));
   }
 
   Widget get contentFilled {
@@ -213,16 +232,24 @@ class _SignUpPageState extends State<SignUpPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Sign Up As Renter...',
+            Text('Registrandose',
                 style: TextStyle(
                     color: Theme.of(context).primaryColor, fontSize: 24)),
-            const SizedBox(height: 20),
+            const SizedBox(height: kDefaultPadding * 2),
             TextFormField(
-              controller: fullname,
+              controller: name,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                  hintText: 'FULLNAME...',
-                  labelText: 'FULLNAME',
+                  hintText: 'NOMBRE...',
+                  labelText: 'RAZON SOCIAL',
+                  border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: iden,
+              decoration: const InputDecoration(
+                  hintText: '000000000',
+                  labelText: 'RNC/CEDULA',
                   border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
@@ -230,8 +257,8 @@ class _SignUpPageState extends State<SignUpPage> {
               controller: username,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                  hintText: 'EMAIL...',
-                  labelText: 'EMAIL',
+                  hintText: 'example@cideca.com',
+                  labelText: 'CORREO',
                   border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
@@ -239,16 +266,8 @@ class _SignUpPageState extends State<SignUpPage> {
               controller: password,
               obscureText: true,
               decoration: const InputDecoration(
-                  hintText: 'PASSWORD...',
-                  labelText: 'PASSWORD',
-                  border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: iden,
-              decoration: const InputDecoration(
-                  hintText: 'IDENTIFICATION...',
-                  labelText: 'IDENTIFICATION',
+                  hintText: 'CLAVE...',
+                  labelText: 'CLAVE',
                   border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
@@ -257,41 +276,17 @@ class _SignUpPageState extends State<SignUpPage> {
                     PhoneNumber(phoneNumber: '', isoCode: currentIsoCode),
                 selectorConfig: const SelectorConfig(
                     selectorType: PhoneInputSelectorType.BOTTOM_SHEET),
-                hintText: 'PHONE 1',
+                hintText: 'TELEFONO MOVIL 1',
                 onInputChanged: (values) {
                   phone1 = values.phoneNumber ?? '';
-                }),
-            const SizedBox(height: 20),
-            InternationalPhoneNumberInput(
-                initialValue:
-                    PhoneNumber(phoneNumber: '', isoCode: currentIsoCode),
-                selectorConfig: const SelectorConfig(
-                    selectorType: PhoneInputSelectorType.BOTTOM_SHEET),
-                hintText: 'PHONE 2',
-                onInputChanged: (values) {
-                  phone2 = values.phoneNumber ?? '';
-                  print(values.isoCode);
-                }),
-            const SizedBox(height: 20),
-            DropdownButtonFormField(
-                value: currentPaisId,
-                decoration: const InputDecoration(
-                    labelText: 'COUNTRY', border: OutlineInputBorder()),
-                items: [Pais(paisId: 0, paisNombre: 'COUNTRY'), ...paises]
-                    .map((pais) {
-                  return DropdownMenuItem(
-                      value: pais.paisId, child: Text(pais.paisNombre!));
-                }).toList(),
-                onChanged: (val) {
-                  currentPaisId = val!;
                 }),
             const SizedBox(height: 20),
             DropdownButtonFormField(
                 value: currentProvinciaId,
                 decoration: const InputDecoration(
-                    labelText: 'PROVINCE', border: OutlineInputBorder()),
+                    labelText: 'PROVINCIA', border: OutlineInputBorder()),
                 items: [
-                  Provincia(provinciaId: 0, provinciaNombre: 'PROVINCE'),
+                  Provincia(provinciaId: 0, provinciaNombre: 'PROVINCIA'),
                   ...provincias
                 ].map((provincia) {
                   return DropdownMenuItem(
@@ -303,9 +298,9 @@ class _SignUpPageState extends State<SignUpPage> {
             DropdownButtonFormField(
                 value: currentCiudadId,
                 decoration: const InputDecoration(
-                    labelText: 'CITY', border: OutlineInputBorder()),
+                    labelText: 'CIUDAD', border: OutlineInputBorder()),
                 items: [
-                  Ciudad(paisId: 0, ciudadId: 0, ciudadNombre: 'CITY'),
+                  Ciudad(paisId: 0, ciudadId: 0, ciudadNombre: 'CIUDAD'),
                   ...ciudades
                 ].map((e) {
                   return DropdownMenuItem(
@@ -316,8 +311,8 @@ class _SignUpPageState extends State<SignUpPage> {
             DropdownButtonFormField(
                 value: currentBancoId,
                 decoration: const InputDecoration(
-                    labelText: 'BANK', border: OutlineInputBorder()),
-                items: [Banco(bancoId: 0, bancoNombre: 'BANK'), ...bancos]
+                    labelText: 'BANCO', border: OutlineInputBorder()),
+                items: [Banco(bancoId: 0, bancoNombre: 'BANCO'), ...bancos]
                     .map((e) {
                   return DropdownMenuItem(
                       value: e.bancoId, child: Text(e.bancoNombre!));
@@ -326,57 +321,86 @@ class _SignUpPageState extends State<SignUpPage> {
                   currentBancoId = id ?? 0;
                 }),
             const SizedBox(height: kDefaultPadding),
+            DropdownButtonFormField(
+                value: currentBancoCuentaTipo,
+                decoration: const InputDecoration(
+                    labelText: 'CUENTA TIPO', border: OutlineInputBorder()),
+                items: [
+                  BancoCuentaTipo(bancoCuentaTipoId: 0, name: 'TIPO'),
+                  ...bancoCuentaTipos
+                ].map((e) {
+                  return DropdownMenuItem(
+                      value: e.bancoCuentaTipoId, child: Text(e.name!));
+                }).toList(),
+                onChanged: (id) {
+                  currentBancoCuentaTipo = id ?? 0;
+                }),
+            const SizedBox(height: kDefaultPadding),
             TextFormField(
               controller: bankNum,
               decoration: const InputDecoration(
-                  hintText: 'BANK ACCOUNT NUM...',
-                  labelText: 'BANK ACCOUNT NUM',
+                  hintText: '0000000000',
+                  labelText: 'BANCO CUENTA NUMERO',
                   border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: kDefaultPadding),
+            SizedBox(
+              width: double.infinity,
+              height: 300,
+              child: GoogleMapWidget(
+                  dir: dir,
+                  onChanged: (data) {
+                    dir = data;
+                  }),
+            ),
+            const SizedBox(height: kDefaultPadding),
             MediaSelectorWidget(
                 documentsTypes: documentsTypes,
                 documentos: documentos,
                 onChanged: (xdocumentos) {
                   documentos = xdocumentos;
                 }),
+            const SizedBox(height: kDefaultPadding),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                  onPressed: onSubmit, child: const Text('REGISTRARSE')),
+            ),
             const SizedBox(height: kDefaultPadding / 2),
             Align(
               alignment: Alignment.center,
               child: TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (ctx) => const LoginPage()));
+                    Get.offAll(() => const LoginPage());
                   },
-                  child: const Text('ACCOUNT?', textAlign: TextAlign.center)),
+                  child: const Text('¿TIENES CUENTA?',
+                      textAlign: TextAlign.center)),
             ),
-            const SizedBox(height: kDefaultPadding / 2),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                  onPressed: onSubmit, child: const Text('SIGN UP')),
-            )
           ],
         ),
       ),
     );
   }
 
-  Widget get content {
-    if (loadingContent) {
-      return contentLoading;
-    }
-
-    if (errorStatus) {
-      return contentError;
-    }
-
-    return contentFilled;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: content, extendBodyBehindAppBar: true);
+    return Scaffold(
+      body: FutureBuilder(
+          future: future,
+          builder: (ctx, s) {
+            if (s.connectionState == ConnectionState.waiting) {
+              return contentLoading;
+            }
+            if (s.hasError) {
+              return GlobalErrorsView(
+                  errorType: (s.error as DioException).type,
+                  onReload: () {
+                    _reload();
+                  });
+            }
+            return contentFilled;
+          }),
+    );
   }
 }

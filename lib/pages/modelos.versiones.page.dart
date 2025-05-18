@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:rent_car_cms/modals/model.version.modal.dart';
 import 'package:rent_car_cms/models/modelo.dart';
 import 'package:rent_car_cms/models/modelo.version.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class ModelosVersionesPage extends StatefulWidget {
   final Modelo modelo;
@@ -15,7 +19,9 @@ class ModelosVersionesPage extends StatefulWidget {
 }
 
 class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
-  late Future<List<ModeloVersion>> future;
+  late Future future;
+
+  List<ModeloVersion> modelosVersiones = [];
 
   Widget get loadingView {
     return const Center(
@@ -23,10 +29,10 @@ class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
     );
   }
 
-  Widget contentView(List<ModeloVersion> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = modelosVersiones[index];
           return ListTile(
             title: Text(item.versionNombre!),
             trailing: IconButton(
@@ -40,10 +46,7 @@ class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
                             editing: true));
 
                     if (res == 'UPDATE') {
-                      setState(() {
-                        future = ModeloVersion.get(
-                            modeloId: widget.modelo.modeloId!);
-                      });
+                      _reload();
                     }
                   } catch (e) {
                     print(e);
@@ -53,28 +56,7 @@ class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
           );
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = ModeloVersion.get();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: modelosVersiones.length);
   }
 
   _showModelVersionEditor() async {
@@ -87,28 +69,51 @@ class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
               ));
 
       if (res == 'CREATE') {
-        setState(() {
-          future = ModeloVersion.get(modeloId: widget.modelo.modeloId!);
-        });
+        _reload();
       }
     } catch (e) {
       print(e);
     }
   }
 
+  _initAsync() async {
+    try {
+      modelosVersiones =
+          await ModeloVersion.get(modeloId: widget.modelo.modeloId!);
+      setState(() {});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  _reload() {
+    setState(() {
+      future = _initAsync();
+    });
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
   @override
   void initState() {
-    setState(() {
-      future = ModeloVersion.get(modeloId: widget.modelo.modeloId!);
-    });
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('VERSIONS - ${widget.modelo.modeloNombre}'.toUpperCase()),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'VERSIONES - ${widget.modelo.modeloNombre}'.toUpperCase(),
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -117,15 +122,14 @@ class _ModelosVersionesPageState extends State<ModelosVersionesPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError || s.data == null) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(s.data!);
+                return contentView;
               }),
           onRefresh: () async {
-            setState(() {
-              future = ModeloVersion.get(modeloId: widget.modelo.modeloId!);
-            });
+            _reload();
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showModelVersionEditor,
         child: const Icon(Icons.add),

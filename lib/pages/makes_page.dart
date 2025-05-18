@@ -1,12 +1,16 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:rent_car_cms/modals/make.editor_modal.dart';
 import 'package:rent_car_cms/models/marca.dart';
 import 'package:rent_car_cms/pages/models_page.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class MakesPage extends StatefulWidget {
   const MakesPage({super.key});
@@ -35,10 +39,10 @@ class _MakesPageState extends State<MakesPage> {
     );
   }
 
-  Widget contentView(List<Marca> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = marcas[index];
           return ListTile(
               leading: CircleAvatar(
                 backgroundColor:
@@ -63,9 +67,7 @@ class _MakesPageState extends State<MakesPage> {
                                   editing: true,
                                 ));
                         if (res == 'UPDATE') {
-                          setState(() {
-                            future = _initAsync();
-                          });
+                          _reload();
                         }
                       },
                       icon: const Icon(Icons.edit)),
@@ -73,36 +75,13 @@ class _MakesPageState extends State<MakesPage> {
               ));
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = _initAsync();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: marcas.length);
   }
 
   _showMakeEditor() async {
     try {
       var res = await showDialog(
           context: context, builder: (ctx) => MakeEditorModal());
-
-      print(res);
 
       if (res == 'CREATE') {
         setState(() {
@@ -114,19 +93,34 @@ class _MakesPageState extends State<MakesPage> {
     }
   }
 
-  @override
-  void initState() {
+  _reload() {
     setState(() {
       future = _initAsync();
     });
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MAKES'),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'MARCAS',
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -135,14 +129,12 @@ class _MakesPageState extends State<MakesPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(marcas);
+                return contentView;
               }),
           onRefresh: () async {
-            setState(() {
-              future = _initAsync();
-            });
+            _reload();
           }),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(

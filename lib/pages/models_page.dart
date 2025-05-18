@@ -1,12 +1,16 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rent_car_cms/modals/model.editor_modal.dart';
 import 'package:rent_car_cms/models/marca.dart';
 import 'package:rent_car_cms/models/modelo.dart';
 import 'package:rent_car_cms/pages/modelos.versiones.page.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class ModelsPage extends StatefulWidget {
   final Marca make;
@@ -29,10 +33,10 @@ class _ModelsPageState extends State<ModelsPage> {
     );
   }
 
-  Widget contentView(List<Modelo> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = modelos[index];
           return ListTile(
               title: Text(item.modeloNombre!),
               trailing: Wrap(
@@ -72,28 +76,7 @@ class _ModelsPageState extends State<ModelsPage> {
               ));
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = _initAsync();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: modelos.length);
   }
 
   _showModelEditor() async {
@@ -106,9 +89,7 @@ class _ModelsPageState extends State<ModelsPage> {
               ));
 
       if (res == 'CREATE') {
-        setState(() {
-          future = _initAsync();
-        });
+        _reload();
       }
     } catch (e) {
       print(e);
@@ -124,19 +105,34 @@ class _ModelsPageState extends State<ModelsPage> {
     }
   }
 
-  @override
-  void initState() {
+  _reload() {
     setState(() {
       future = _initAsync();
     });
+  }
+
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('MODELS - ${widget.make.marcaNombre!}'.toUpperCase()),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'MODELOS - ${widget.make.marcaNombre!}'.toUpperCase(),
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -145,15 +141,14 @@ class _ModelsPageState extends State<ModelsPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(modelos);
+                return contentView;
               }),
           onRefresh: () async {
-            setState(() {
-              future = _initAsync();
-            });
+            _reload();
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showModelEditor,
         child: const Icon(Icons.add),

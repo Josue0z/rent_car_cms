@@ -22,8 +22,8 @@ class Marca {
         return (res.data as List).map((e) => Marca.fromJson(e)).toList();
       }
       return [];
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 

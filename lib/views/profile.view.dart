@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:rent_car_cms/controllers/ui.controller.dart';
-import 'package:rent_car_cms/models/beneficiario.dart';
 import 'package:rent_car_cms/models/place.dart';
 import 'package:rent_car_cms/models/usuario.dart';
 import 'package:rent_car_cms/settings.dart';

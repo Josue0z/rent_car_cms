@@ -8,7 +8,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:image/image.dart' as img;
 
 class MediaSelectorWidget extends StatefulWidget {
-  List<Documento>? documentos;
+  List<DocumentoModel>? documentos;
 
   List<Map<String, dynamic>> documentsTypes = [
     {
@@ -20,7 +20,7 @@ class MediaSelectorWidget extends StatefulWidget {
     }
   ];
 
-  Function(List<Documento> documentos) onChanged;
+  Function(List<DocumentoModel> documentos) onChanged;
 
   MediaSelectorWidget(
       {super.key,
@@ -35,46 +35,18 @@ class MediaSelectorWidget extends StatefulWidget {
 class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
   List<Widget> items = [];
 
-  List<TextEditingController> editors1 = [];
-
-  List<TextEditingController> editors2 = [];
-
   renderDocuments() {
     if (widget.documentos != null && widget.documentos!.isNotEmpty) {
       for (int i = 0; i < widget.documentos!.length; i++) {
         var documento = widget.documentos![i];
-        var editor1 = TextEditingController();
-        var editor2 = TextEditingController();
-
-        editors1.add(editor1);
-        editors2.add(editor2);
 
         var xwidget = MediaItemWidget(
-            documentsTypes: widget.documentsTypes,
-            imagenBytes: base64Decode(documento.imagenBase64!),
-            documentoId: documento.documentoId,
-            editorController1: editor1,
-            editorController2: editor2);
-
-        editor1.value = TextEditingValue(text: documento.imagenNota ?? '');
-        editor2.value = TextEditingValue(text: documento.imagenContenido ?? '');
+          documentsTypes: widget.documentsTypes,
+          documento: documento,
+          documentoId: documento.documentoId,
+        );
 
         items.add(xwidget);
-      }
-
-      for (int i = 0; i < widget.documentos!.length; i++) {
-        var editor1 = editors1[i];
-        var editor2 = editors2[i];
-
-        editor1.addListener(() {
-          widget.documentos![i].imagenNota = editor1.text;
-          widget.onChanged(widget.documentos!);
-        });
-
-        editor2.addListener(() {
-          widget.documentos![i].imagenContenido = editor2.text;
-          widget.onChanged(widget.documentos!);
-        });
       }
 
       widget.onChanged(widget.documentos!);
@@ -84,12 +56,12 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
   }
 
   uploadMedia() async {
-    List<Documento> xdocumentos = [];
+    List<DocumentoModel> xdocumentos = [];
 
     var result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['png', 'jpg', 'jpeg']);
+        allowedExtensions: ['jpg', 'pdf']);
     var files = result?.files;
 
     if (files != null) {
@@ -97,57 +69,29 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
         var file = files[ii];
 
         var bytes = await file.xFile.readAsBytes();
-        var editor1 = TextEditingController();
-        var editor2 = TextEditingController();
 
-        editors1.add(editor1);
-        editors2.add(editor2);
+        var imagenBase64 = base64Encode(bytes);
 
-        var xwidget = MediaItemWidget(
-            imagenBytes: bytes,
-            documentsTypes: widget.documentsTypes,
-            editorController1: editor1,
-            editorController2: editor2);
+        int tipo = 1;
 
-        final image = img.decodeImage(bytes);
-        //final resized = img.copyResize(image!, width: 80);
-        final resizedByteData = img.encodeJpg(image!);
-        var btes = ByteData.sublistView(resizedByteData);
-        var imagenBase64 = base64Encode(btes.buffer.asUint8List());
-        var imagenContenido = 'data:image/jpeg;base64,$imagenBase64';
+        print(file.extension);
 
-        var doc = Documento(
-            imagenNota: '',
-            imagenContenido: imagenContenido,
-            imagenFecha: DateTime.now().toIso8601String(),
-            imagenEstatus: 1,
-            imagenBase64: imagenBase64,
-            imagenPrincipal: 1);
+        if (file.extension?.toLowerCase().contains('pdf') == true) {
+          tipo = 2;
+        }
+
+        var doc = DocumentoModel(
+            imagenBase64: imagenBase64, documentoFormatoId: tipo);
 
         xdocumentos.add(doc);
+
+        var xwidget = MediaItemWidget(
+            documento: doc, documentsTypes: widget.documentsTypes);
 
         items.add(xwidget);
       }
     }
     widget.documentos = [...?widget.documentos, ...xdocumentos];
-
-    for (int i = 0; i < editors1.length; i++) {
-      var editor1 = editors1[i];
-
-      editor1.addListener(() {
-        widget.documentos![i].imagenNota = editor1.text;
-        widget.onChanged(widget.documentos!);
-      });
-    }
-
-    for (int i = 0; i < editors2.length; i++) {
-      var editor2 = editors2[i];
-
-      editor2.addListener(() {
-        widget.documentos![i].imagenContenido = editor2.text;
-        widget.onChanged(widget.documentos!);
-      });
-    }
 
     widget.onChanged(widget.documentos!);
 
@@ -182,7 +126,9 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
                     Icon(Icons.image,
                         size: 60, color: Theme.of(context).primaryColor),
                     const SizedBox(height: kDefaultPadding / 2),
-                    const Text('UPLOAD DOCUMENTS (NACIONAL ID, PASSPORT)')
+                    const Text(
+                        'SUBIR DOCUMENTOS (CEDULA O PASAPORTE Y CERTIFICACION DE INSCRIPCION DEL CONTRIBUYENTE DE LA DGII)',
+                        textAlign: TextAlign.center)
                   ],
                 ),
               ),
@@ -193,13 +139,11 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
       item.onDelete = () {
         items.removeAt(i);
         widget.documentos?.removeAt(i);
-        editors1.removeAt(i);
-        editors2.removeAt(i);
         setState(() {});
         widget.onChanged(widget.documentos!);
       };
       item.onChanged = (id) {
-        widget.documentos![i].documentoId = id;
+        widget.documentos?[i].documentoTipo = id;
         widget.onChanged(widget.documentos!);
       };
     }
@@ -214,7 +158,7 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
             height: 50,
             child: ElevatedButton(
                 onPressed: uploadMedia,
-                child: const Text('LOAD MORE DOCUMENTS')),
+                child: const Text('CARGAR MAS DOCUMENTOS')),
           )
         ]),
       );
@@ -240,11 +184,7 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
 class MediaItemWidget extends StatelessWidget {
   final int? documentoId;
 
-  final Uint8List imagenBytes;
-
-  final TextEditingController editorController1;
-
-  final TextEditingController editorController2;
+  final DocumentoModel? documento;
 
   VoidCallback? onDelete;
 
@@ -258,9 +198,7 @@ class MediaItemWidget extends StatelessWidget {
       this.onDelete,
       this.onChanged,
       required this.documentsTypes,
-      required this.imagenBytes,
-      required this.editorController1,
-      required this.editorController2});
+      required this.documento});
 
   @override
   Widget build(BuildContext context) {
@@ -271,11 +209,21 @@ class MediaItemWidget extends StatelessWidget {
           width: double.infinity,
           height: 300,
           clipBehavior: Clip.hardEdge,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.black12)),
           child: Stack(
             children: [
               Positioned.fill(
-                  child: Image.memory(imagenBytes, fit: BoxFit.cover)),
+                  child: documento?.documentoFormatoId == 1
+                      ? Image.memory(
+                          base64Decode(documento?.imagenBase64 ?? ''),
+                          fit: BoxFit.cover)
+                      : Center(
+                          child: Icon(Icons.picture_as_pdf,
+                              size: 120,
+                              color: Theme.of(context).colorScheme.primary),
+                        )),
               Positioned(
                   top: 15,
                   right: 15,
@@ -294,33 +242,15 @@ class MediaItemWidget extends StatelessWidget {
             value: documentoId,
             isExpanded: true,
             decoration: const InputDecoration(
-                hintText: 'DOCUMENT TYPE', border: OutlineInputBorder()),
+                hintText: 'DOCUMENTO TIPO', border: OutlineInputBorder()),
             items: documentsTypes.map((e) {
               return DropdownMenuItem(
-                  value: e['documentoId'] as int,
+                  value: e['documentoTipo'] as int,
                   child: Text(e['documentoNombre']));
             }).toList(),
             onChanged: (id) {
               onChanged!(id!);
             }),
-        const SizedBox(height: kDefaultPadding),
-        TextFormField(
-          controller: editorController1,
-          decoration: const InputDecoration(
-              labelText: 'NOTE',
-              hintText: 'NOTE...',
-              border: OutlineInputBorder()),
-        ),
-        const SizedBox(height: kDefaultPadding),
-        TextFormField(
-          controller: editorController2,
-          keyboardType: TextInputType.multiline,
-          maxLines: 5,
-          decoration: const InputDecoration(
-              labelText: 'CONTENT',
-              hintText: 'CONTENT...',
-              border: OutlineInputBorder()),
-        ),
         const SizedBox(height: kDefaultPadding),
       ],
     );

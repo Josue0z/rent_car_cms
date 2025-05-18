@@ -16,8 +16,6 @@ class TipoAuto {
     try {
       var res = await rentApi.get('/autos/tipo-autos/todos');
 
-      print(res);
-
       if (res.statusCode == 200) {
         return (res.data as List)
             .map((e) => TipoAuto.fromMap(e))
@@ -25,9 +23,8 @@ class TipoAuto {
             .cast<TipoAuto>();
       }
       return [];
-    } on DioException catch (e) {
-      print(e);
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 

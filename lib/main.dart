@@ -1,11 +1,9 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:material_color_generator/material_color_generator.dart';
 import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/controllers/ui.controller.dart';
-import 'package:rent_car_cms/models/beneficiario.dart';
 import 'package:rent_car_cms/pages/home_page.dart';
 import 'package:rent_car_cms/pages/sign.in.page.dart';
 import 'package:rent_car_cms/pages/startup_page.dart';
@@ -74,12 +72,49 @@ class MyApp extends StatelessWidget {
                 tertiary: tertiaryColor),
             useMaterial3: false,
             textTheme: const TextTheme(
-                displaySmall: TextStyle(fontSize: kLabelsFontSize)),
+                displayLarge: TextStyle(
+                    fontSize: kTitlesFontSize, fontWeight: kTitlesFontWeight),
+                displayMedium: TextStyle(
+                    fontSize: kLabelsFontSize,
+                    color: kLabelsFontColor,
+                    fontWeight: kLabelsFontWeight),
+                displaySmall: TextStyle(
+                    fontSize: kLabelsFontSize2,
+                    color: kLabelsFontColor,
+                    fontWeight: kLabelsFontWeight),
+                bodyLarge: TextStyle(
+                    fontSize: kParagraphFontSize,
+                    fontWeight: kParagraphFontWeight,
+                    color: kParagraphFontColor),
+                bodyMedium: TextStyle(
+                    fontSize: kParagraphFontSize2,
+                    fontWeight: kParagraphFontWeight,
+                    color: kParagraphFontColor)),
             dialogTheme: DialogTheme(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20))),
             floatingActionButtonTheme: const FloatingActionButtonThemeData(
                 backgroundColor: primaryColor),
+            inputDecorationTheme: InputDecorationTheme(
+                hintStyle: const TextStyle(color: kPlaceholdersFontColor),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.black12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: primaryColor, width: 1.5)),
+                focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.red, width: 1)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: Colors.black12, width: 1.5)),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: kDefaultPadding / 2,
+                    horizontal: kDefaultPadding / 2)),
             appBarTheme: const AppBarTheme(
                 iconTheme: IconThemeData(color: Colors.white),
                 elevation: 0,

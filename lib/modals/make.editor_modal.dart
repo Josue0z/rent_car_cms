@@ -24,12 +24,14 @@ class _MakeEditorModalState extends State<MakeEditorModal> {
   Uint8List? imagen;
   String? imagenBase64;
 
+  Map<String, dynamic>? dataImage;
+
   String get title {
-    return widget.editing ? 'EDITING MAKE...' : 'CREATING MAKE...';
+    return widget.editing ? 'EDITANDO MARCA...' : 'CREANDO MARCA...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE MAKE' : 'CREATE MAKE';
+    return widget.editing ? 'EDITAR MARCA' : 'CREAR MARCA';
   }
 
   _onSubmit() async {
@@ -61,6 +63,8 @@ class _MakeEditorModalState extends State<MakeEditorModal> {
     if (widget.make != null) {
       imagen = base64Decode(widget.make?.marcaLogo ?? '');
       imagenBase64 = widget.make?.marcaLogo;
+      dataImage = {'bytes': imagen, 'imagenBase64': imagenBase64};
+      setState(() {});
     }
     make.value = TextEditingValue(text: widget.make?.marcaNombre ?? '');
     super.initState();
@@ -99,20 +103,30 @@ class _MakeEditorModalState extends State<MakeEditorModal> {
                 ),
                 const SizedBox(height: kDefaultPadding),
                 CircleImageSelectorWidget(
-                    imagen: imagen,
-                    onChanged: (ximagen, xbase64) {
-                      imagen = ximagen;
-                      imagenBase64 = xbase64;
+                    initialValue: dataImage,
+                    validator: (val) => val == null
+                        ? 'Formato no valido... debe ser tipo .svg'
+                        : null,
+                    onChanged: (data) {
+                      if (data != null) {
+                        var ximagen = data['bytes'];
+                        var xbase64 = data['imagenBase64'];
+
+                        imagen = ximagen;
+                        imagenBase64 = xbase64;
+                        dataImage = data;
+                        setState(() {});
+                      }
                     }),
                 const SizedBox(height: kDefaultPadding),
                 TextFormField(
                   controller: make,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'MAKE', labelText: 'MAKE'),
+                      hintText: 'MARCA', labelText: 'MARCA'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

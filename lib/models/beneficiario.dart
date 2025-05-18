@@ -2,6 +2,8 @@
 
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/models/banco.cuenta.tipo.dart';
 import 'package:rent_car_cms/models/banco.dart';
 import 'package:rent_car_cms/models/ciudad.dart';
@@ -29,29 +31,50 @@ class Beneficiario {
   String? beneficiarioFecha;
   int? beneficiarioAutoGestion;
   int? beneficiarioMaster;
-  Beneficiario({
-    this.beneficiarioId,
-    this.beneficiarioNombre,
-    this.beneficiarioIdentificacion,
-    this.beneficiarioTipo,
-    this.paisId,
-    this.proviciaId,
-    this.provincia,
-    this.ciudadId,
-    this.ciudad,
-    this.beneficiarioDireccion,
-    this.beneficiarioCoorX,
-    this.beneficiarioCoorY,
-    this.beneficiarioEstatus,
-    this.bancoId,
-    this.banco,
-    this.beneficiarioCuentaTipo,
-    this.bancoCuentaTipo,
-    this.beneficiarioCuentaNo,
-    this.beneficiarioFecha,
-    this.beneficiarioAutoGestion,
-    this.beneficiarioMaster,
-  });
+  String? beneficiarioCorreo;
+  String? beneficiarioTelefono;
+
+  String? imagenBase64;
+  Beneficiario(
+      {this.beneficiarioId,
+      this.beneficiarioNombre,
+      this.beneficiarioIdentificacion,
+      this.beneficiarioTipo,
+      this.paisId,
+      this.proviciaId,
+      this.provincia,
+      this.ciudadId,
+      this.ciudad,
+      this.beneficiarioDireccion,
+      this.beneficiarioCoorX,
+      this.beneficiarioCoorY,
+      this.beneficiarioEstatus,
+      this.bancoId,
+      this.banco,
+      this.beneficiarioCuentaTipo,
+      this.bancoCuentaTipo,
+      this.beneficiarioCuentaNo,
+      this.beneficiarioFecha,
+      this.beneficiarioAutoGestion,
+      this.beneficiarioMaster,
+      this.beneficiarioCorreo,
+      this.beneficiarioTelefono,
+      this.imagenBase64});
+
+  Future<Beneficiario?> update() async {
+    try {
+      var res = await rentApi.put('/beneficiarios/modificar/$beneficiarioId',
+          data: toMap());
+
+      if (res.statusCode == 200) {
+        return Beneficiario.fromMap(res.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      print(e);
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
 
   Beneficiario copyWith({
     int? beneficiarioId,
@@ -105,6 +128,18 @@ class Beneficiario {
     );
   }
 
+  static Future<List<Beneficiario>> get({String search = ''}) async {
+    try {
+      var res = await rentApi.get('/beneficiarios/todos?buscar=$search');
+      if (res.statusCode == 200) {
+        return (res.data as List).map((e) => Beneficiario.fromMap(e)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'beneficiarioId': beneficiarioId,
@@ -128,6 +163,9 @@ class Beneficiario {
       'beneficiarioFecha': beneficiarioFecha,
       'beneficiarioAutoGestion': beneficiarioAutoGestion,
       'beneficiarioMaster': beneficiarioMaster,
+      'beneficiarioCorreo': beneficiarioCorreo,
+      'beneficiarioTelefono': beneficiarioTelefono,
+      'imagenBase64': imagenBase64
     };
   }
 
@@ -159,7 +197,10 @@ class Beneficiario {
             : null,
         beneficiarioFecha: map['beneficiarioFecha'] != null
             ? map['beneficiarioFecha'] as String
-            : null);
+            : null,
+        beneficiarioCorreo: map['beneficiarioCorreo'],
+        beneficiarioTelefono: map['beneficiarioTelefono'],
+        imagenBase64: map['imagenBase64']);
   }
 
   String toJson() => json.encode(toMap());

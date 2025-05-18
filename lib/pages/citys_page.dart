@@ -3,6 +3,7 @@ import 'package:rent_car_cms/modals/citys.editor_modal.dart';
 import 'package:rent_car_cms/models/ciudad.dart';
 import 'package:rent_car_cms/models/provincia.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class CitysPage extends StatefulWidget {
   final Provincia province;
@@ -103,8 +104,10 @@ class _CitysPageState extends State<CitysPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('CITYS - ${widget.province.provinciaNombre}'.toUpperCase()),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'CIUDADES - ${widget.province.provinciaNombre}'.toUpperCase(),
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -122,6 +125,7 @@ class _CitysPageState extends State<CitysPage> {
               future = Ciudad.get(provinciaId: widget.province.provinciaId!);
             });
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showCityEditor,
         child: const Icon(Icons.add),

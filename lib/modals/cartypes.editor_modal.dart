@@ -19,11 +19,11 @@ class _CarTypesEditorModalState extends State<CarTypesEditorModal> {
   TextEditingController province = TextEditingController();
 
   String get title {
-    return widget.editing ? 'EDITING CAR TYPE...' : 'CREATING CAR TYPE...';
+    return widget.editing ? 'EDITANDO TIPO AUTO...' : 'CREANDO TIPO AUTO...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE CAR TYPE' : 'CREATE CAR TYPE';
+    return widget.editing ? 'EDITAR TIPO AUTO' : 'CREAR TIPO AUTO';
   }
 
   _onSubmit() async {
@@ -88,11 +88,11 @@ class _CarTypesEditorModalState extends State<CarTypesEditorModal> {
                 TextFormField(
                   controller: province,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'NAME', labelText: 'CAR TYPE'),
+                      hintText: 'NOMBRE', labelText: 'TIPO DE AUTO'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

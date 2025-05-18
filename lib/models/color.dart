@@ -20,8 +20,8 @@ class MyColor {
         return (res.data as List).map((e) => MyColor.fromMap(e)).toList();
       }
       return [];
-    } on DioException catch (e) {
-      throw e.response?.data['error'] ?? e.message;
+    } on DioException catch (_) {
+      rethrow;
     }
   }
 

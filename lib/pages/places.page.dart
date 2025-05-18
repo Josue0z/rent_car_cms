@@ -25,7 +25,7 @@ class PlacesPage extends SearchDelegate<Place?> {
   }
 
   @override
-  String get searchFieldLabel => 'PLACES';
+  String get searchFieldLabel => 'SITIOS';
 
   @override
   List<Widget>? buildActions(BuildContext context) {

@@ -20,11 +20,11 @@ class _CitysEditorModalState extends State<CitysEditorModal> {
   TextEditingController city = TextEditingController();
 
   String get title {
-    return widget.editing ? 'EDITING CITY...' : 'CREATING CITY...';
+    return widget.editing ? 'EDITANDO CIUDAD...' : 'CREANDO CIUDAD...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE CITY' : 'CREATE CITY';
+    return widget.editing ? 'EDITAR CIUDAD' : 'CREAR CIUDAD';
   }
 
   _onSubmit() async {
@@ -93,11 +93,11 @@ class _CitysEditorModalState extends State<CitysEditorModal> {
                 TextFormField(
                   controller: city,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'NAME', labelText: 'CITY'),
+                      hintText: 'NOMBRE', labelText: 'CIUDAD'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

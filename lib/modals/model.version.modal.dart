@@ -30,11 +30,11 @@ class _ModelVersionEditorModalState extends State<ModelVersionEditorModal> {
   int currentModelId = 0;
 
   String get title {
-    return widget.editing ? 'EDITING VERSION...' : 'CREATING VERSION...';
+    return widget.editing ? 'EDITANDO VERSION...' : 'CREANDO VERSION...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE VERSION' : 'CREATE VERSION';
+    return widget.editing ? 'EDITAR VERSION' : 'CREAR VERSION';
   }
 
   _onSubmit() async {
@@ -108,11 +108,11 @@ class _ModelVersionEditorModalState extends State<ModelVersionEditorModal> {
                 ),
                 DropdownButtonFormField(
                     decoration: const InputDecoration(
-                        labelText: 'MAKE', enabled: false),
-                    validator: (val) => val == 0 ? 'FIELD REQURIED' : null,
+                        labelText: 'MODELO', enabled: false),
+                    validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
                     value: currentModelId,
                     items: [
-                      Modelo(modeloId: 0, modeloNombre: 'MODEL'),
+                      Modelo(modeloId: 0, modeloNombre: 'MODELO'),
                       ...widget.modelos
                     ]
                         .map((e) => DropdownMenuItem(
@@ -127,11 +127,11 @@ class _ModelVersionEditorModalState extends State<ModelVersionEditorModal> {
                 TextFormField(
                   controller: modeloVersion,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'MODEL', labelText: 'MODEL'),
+                      hintText: 'MODELO', labelText: 'MODELO'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

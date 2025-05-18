@@ -19,11 +19,11 @@ class _ProvinceEditorModalState extends State<ProvinceEditorModal> {
   TextEditingController province = TextEditingController();
 
   String get title {
-    return widget.editing ? 'EDITING PROVINCE...' : 'CREATING PROVINCE...';
+    return widget.editing ? 'EDITAR PROVINCIA...' : 'CREANDO PROVINCIA...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE PROVINCE' : 'CREATE PROVINCE';
+    return widget.editing ? 'EDITAR PROVINCIA' : 'CREAR PROVINCIA';
   }
 
   _onSubmit() async {
@@ -91,11 +91,11 @@ class _ProvinceEditorModalState extends State<ProvinceEditorModal> {
                 TextFormField(
                   controller: province,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'NAME', labelText: 'PROVINCE'),
+                      hintText: 'NOMBRE', labelText: 'PROVINCIA'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,

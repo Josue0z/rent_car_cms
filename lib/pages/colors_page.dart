@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:rent_car_cms/modals/colors_editor_modal.dart';
 import 'package:rent_car_cms/models/color.dart';
+import 'package:rent_car_cms/planillas/errors/global.errors.view.dart';
+import 'package:rent_car_cms/planillas/errors/network.error.view.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class ColorsPage extends StatefulWidget {
   const ColorsPage({super.key});
@@ -12,7 +16,8 @@ class ColorsPage extends StatefulWidget {
 }
 
 class _ColorsPageState extends State<ColorsPage> {
-  late Future<List<MyColor>> future;
+  List<MyColor> colores = [];
+  late Future future;
 
   Widget get loadingView {
     return const Center(
@@ -20,10 +25,10 @@ class _ColorsPageState extends State<ColorsPage> {
     );
   }
 
-  Widget contentView(List<MyColor> data) {
+  Widget get contentView {
     return ListView.separated(
         itemBuilder: (ctx, index) {
-          var item = data[index];
+          var item = colores[index];
           return ListTile(
             leading: Container(
               width: 30,
@@ -56,28 +61,7 @@ class _ColorsPageState extends State<ColorsPage> {
           );
         },
         separatorBuilder: (ctx, i) => const Divider(),
-        itemCount: data.length);
-  }
-
-  Widget get errorView {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.warning,
-              size: 100, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: kDefaultPadding),
-          ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  future = MyColor.get();
-                });
-              },
-              child: const Text('REFRESH'))
-        ],
-      ),
-    );
+        itemCount: colores.length);
   }
 
   _showColorEditor() async {
@@ -95,19 +79,43 @@ class _ColorsPageState extends State<ColorsPage> {
     }
   }
 
+  Widget errorView(DioException error) {
+    return GlobalErrorsView(
+      errorType: error.type,
+      onReload: () {
+        _reload();
+      },
+    );
+  }
+
+  _initAsync() async {
+    try {
+      colores = await MyColor.get();
+      setState(() {});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  _reload() {
+    setState(() {
+      future = _initAsync();
+    });
+  }
+
   @override
   void initState() {
-    setState(() {
-      future = MyColor.get();
-    });
+    _reload();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('COLORS'),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'COLORES',
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -116,15 +124,16 @@ class _ColorsPageState extends State<ColorsPage> {
                 if (s.connectionState == ConnectionState.waiting) {
                   return loadingView;
                 }
-                if (s.hasError || s.data == null) return errorView;
+                if (s.hasError) return errorView(s.error as DioException);
 
-                return contentView(s.data!);
+                return contentView;
               }),
           onRefresh: () async {
             setState(() {
               future = MyColor.get();
             });
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showColorEditor,
         child: const Icon(Icons.add),

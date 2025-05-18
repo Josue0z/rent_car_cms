@@ -23,6 +23,10 @@ class ImagenModel {
     return '${rentApi.options.baseUrl}/imagenes/obtener/$imagenArchivo';
   }
 
+  String get base64 {
+    return imagenBase64!.split(',')[1];
+  }
+
   Color get color {
     if (imagenEstatus == 1) {
       return tertiaryColor;
@@ -52,6 +56,18 @@ class ImagenModel {
     return '<NONE>';
   }
 
+  static Future<List<ImagenModel>> get({required int autoId}) async {
+    try {
+      var res = await rentApi.get('/imagenes/todos?autoId=$autoId');
+      if (res.statusCode == 200) {
+        return (res.data as List).map((e) => ImagenModel.fromMap(e)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
   Future<ImagenModel?> create() async {
     try {
       var res = await rentApi.post('/imagenes/subir-imagen', data: toMap());
@@ -68,6 +84,44 @@ class ImagenModel {
     try {
       var res = await rentApi.put('/imagenes/modificar-imagen/$imagenId',
           data: toMap());
+      if (res.statusCode == 200) {
+        return ImagenModel.fromMap(res.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
+  Future<ImagenModel?> delete() async {
+    try {
+      var res =
+          await rentApi.delete('/imagenes/eliminar/$imagenId', data: toMap());
+      if (res.statusCode == 200) {
+        return ImagenModel.fromMap(res.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
+  Future<ImagenModel?> aceptar() async {
+    try {
+      var res = await rentApi.put('/imagenes/aceptar/$imagenId', data: toMap());
+      if (res.statusCode == 200) {
+        return ImagenModel.fromMap(res.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      throw e.response?.data['error'] ?? e.message;
+    }
+  }
+
+  Future<ImagenModel?> rechazar() async {
+    try {
+      var res =
+          await rentApi.put('/imagenes/rechazar/$imagenId', data: toMap());
       if (res.statusCode == 200) {
         return ImagenModel.fromMap(res.data);
       }

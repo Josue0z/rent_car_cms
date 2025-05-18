@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rent_car_cms/modals/platform.price.editor_modal.dart';
 import 'package:rent_car_cms/models/precio.dart';
 import 'package:rent_car_cms/settings.dart';
+import 'package:rent_car_cms/widgets/appbar.widget.dart';
 
 class PlatformPricesPage extends StatefulWidget {
   const PlatformPricesPage({super.key});
@@ -98,8 +99,10 @@ class _PlatformPricesPageState extends State<PlatformPricesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PLATFORMS PRICES'),
+      appBar: AppBarWidget(
+        context: context,
+        title: 'PRECIOS',
+        actions: const [SizedBox(width: kDefaultPadding * 3)],
       ),
       body: RefreshIndicator(
           child: FutureBuilder(
@@ -117,6 +120,7 @@ class _PlatformPricesPageState extends State<PlatformPricesPage> {
               future = Precio.get();
             });
           }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showPriceEditor,
         child: const Icon(Icons.add),

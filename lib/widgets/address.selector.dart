@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rent_car_cms/controllers/ui.controller.dart';
-import 'package:rent_car_cms/modals/loading.modal.dart';
+import 'package:rent_car_cms/utils/functions.dart';
 import 'package:rent_car_cms/models/geocode.dart';
 import 'package:rent_car_cms/models/place.dart';
 import 'package:rent_car_cms/pages/places.page.dart';
@@ -66,9 +66,10 @@ class _AddressSelectorWidgetState extends State<AddressSelectorWidget> {
     return TextFormField(
       controller: widget.controller,
       readOnly: true,
+      validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
       decoration: InputDecoration(
-          labelText: 'ADDRESS',
-          hintText: 'ADDRESS',
+          labelText: 'DIRECCION',
+          hintText: 'NOMBRE...',
           border: const OutlineInputBorder(),
           suffixIcon: Wrap(
             runAlignment: WrapAlignment.center,

@@ -25,11 +25,11 @@ class _ModelEditorModalState extends State<ModelEditorModal> {
   int currentMakeId = 0;
 
   String get title {
-    return widget.editing ? 'EDITING MODEL...' : 'CREATING MODEL...';
+    return widget.editing ? 'EDITANDO MODELO...' : 'CREANDO MODELO...';
   }
 
   String get btnTitle {
-    return widget.editing ? 'UPDATE MODEL' : 'CREATE MODEL';
+    return widget.editing ? 'EDITAR MODELO' : 'CREAR MODELO';
   }
 
   _onSubmit() async {
@@ -103,11 +103,11 @@ class _ModelEditorModalState extends State<ModelEditorModal> {
                 ),
                 DropdownButtonFormField(
                     decoration: const InputDecoration(
-                        labelText: 'MAKE', enabled: false),
-                    validator: (val) => val == 0 ? 'FIELD REQURIED' : null,
+                        labelText: 'MARCA', enabled: false),
+                    validator: (val) => val == 0 ? 'CAMPO OBLIGATORIO' : null,
                     value: currentMakeId,
                     items: [
-                      Marca(marcaId: 0, marcaNombre: 'MAKE'),
+                      Marca(marcaId: 0, marcaNombre: 'MARCA'),
                       ...widget.marcas
                     ]
                         .map((e) => DropdownMenuItem(
@@ -122,11 +122,11 @@ class _ModelEditorModalState extends State<ModelEditorModal> {
                 TextFormField(
                   controller: model,
                   autofocus: true,
-                  validator: (val) => val!.isEmpty ? 'FIELD REQUIRED' : null,
+                  validator: (val) => val!.isEmpty ? 'CAMPO OBLIGATORIO' : null,
                   onFieldSubmitted: (_) => _onSubmit(),
                   textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
-                      hintText: 'MODEL', labelText: 'MODEL'),
+                      hintText: 'MODELO', labelText: 'MODELO'),
                 ),
                 const SizedBox(
                   height: kDefaultPadding,
