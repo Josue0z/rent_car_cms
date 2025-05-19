@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -143,6 +145,10 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 onMapCreated: _onMapCreated,
                 onCameraMove: _onCameraMove,
                 onCameraIdle: _onCameraIdle,
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                      () => EagerGestureRecognizer()),
+                },
                 initialCameraPosition:
                     CameraPosition(target: currentPosition, zoom: 16)),
           );

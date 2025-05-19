@@ -71,7 +71,6 @@ class Beneficiario {
       }
       return null;
     } on DioException catch (e) {
-      print(e);
       throw e.response?.data['error'] ?? e.message;
     }
   }

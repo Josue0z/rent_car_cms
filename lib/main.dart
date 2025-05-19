@@ -68,6 +68,7 @@ class MyApp extends StatelessWidget {
             primarySwatch: generateMaterialColor(color: primaryColor),
             colorScheme: ColorScheme.fromSeed(
                 seedColor: primaryColor,
+                primary: primaryColor,
                 secondary: secondaryColor,
                 tertiary: tertiaryColor),
             useMaterial3: false,

@@ -33,28 +33,56 @@ class _BeneficiaryBankDetailsViewState
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('Banco')),
-                      Obx(() => Text(controller.usuario.value?.beneficiario
-                              ?.banco?.bancoNombre ??
-                          ''))
+                      Expanded(
+                          child: Text('Banco',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: kLabelsFontColor,
+                                      fontWeight: kLabelsFontWeight))),
+                      Obx(() => Expanded(
+                          child: Text(
+                              controller.usuario.value?.beneficiario?.banco
+                                      ?.bancoNombre ??
+                                  '',
+                              textAlign: TextAlign.right)))
                     ],
                   ),
                   const Divider(),
                   Row(
                     children: [
-                      const Expanded(child: Text('Tipo de cuenta')),
-                      Obx(() => Text(controller.usuario.value?.beneficiario
-                              ?.bancoCuentaTipo?.name ??
-                          ''))
+                      Expanded(
+                          child: Text(
+                        'Tipo de cuenta',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: kLabelsFontColor,
+                            fontWeight: kLabelsFontWeight),
+                      )),
+                      Obx(() => Expanded(
+                          child: Text(
+                              controller.usuario.value?.beneficiario
+                                      ?.bancoCuentaTipo?.name ??
+                                  '',
+                              textAlign: TextAlign.right)))
                     ],
                   ),
                   const Divider(),
                   Row(
                     children: [
-                      const Expanded(child: Text('Numero de cuenta')),
-                      Obx(() => Text(controller.usuario.value?.beneficiario
-                              ?.beneficiarioCuentaNo ??
-                          ''))
+                      Expanded(
+                          child: Text(
+                        'Numero de cuenta',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: kLabelsFontColor,
+                            fontWeight: kLabelsFontWeight),
+                      )),
+                      Obx(() => Expanded(
+                          child: Text(
+                              controller.usuario.value?.beneficiario
+                                      ?.beneficiarioCuentaNo ??
+                                  '',
+                              textAlign: TextAlign.right)))
                     ],
                   ),
                   const Divider(),

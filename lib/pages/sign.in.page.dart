@@ -16,6 +16,7 @@ import 'package:rent_car_cms/pages/sign.up.page.dart';
 import 'package:rent_car_cms/settings.dart';
 import 'package:rent_car_cms/views/content.administrator_view.dart';
 import 'package:rent_car_cms/widgets/app.custom.button.dart';
+import 'package:rent_car_cms/widgets/cideca.logo.widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -93,11 +94,21 @@ class _LoginPageState extends State<LoginPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    const Align(
+                                      alignment: Alignment.center,
+                                      child: CidecaLogoWidget(),
+                                    ),
+                                    const SizedBox(height: kDefaultPadding * 3),
                                     Text(
-                                      'INICIAR',
-                                      style: TextStyle(
-                                          color: Theme.of(context).primaryColor,
-                                          fontSize: 20),
+                                      'Iniciar Sesion',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .displayMedium
+                                          ?.copyWith(
+                                              fontSize: 23,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
                                     ),
                                     const SizedBox(height: kDefaultPadding),
                                     TextFormField(

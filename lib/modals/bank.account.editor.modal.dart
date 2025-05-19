@@ -35,14 +35,15 @@ class _BankAccountEditorModalState extends State<BankAccountEditorModal> {
             bancoNum.text;
         showLoader(context);
 
-        await _uiController.usuario.value?.beneficiario?.update();
+        _uiController.usuario.value?.beneficiario =
+            await _uiController.usuario.value?.beneficiario?.update();
 
         _uiController.usuario.refresh();
 
         Navigator.pop(context);
         Navigator.pop(context);
 
-        showSnackBar(context, 'Tu datos fueron cambiados');
+        showSnackBar(context, 'Tus datos fueron cambiados');
       } catch (e) {
         Navigator.pop(context);
         showSnackBar(context, e.toString());
@@ -81,6 +82,7 @@ class _BankAccountEditorModalState extends State<BankAccountEditorModal> {
                     children: [
                       DropdownButtonFormField(
                           value: currentBancoId,
+                          isExpanded: true,
                           validator: (val) =>
                               val == 0 ? 'CAMPO OBLIGATORIO' : null,
                           items: [
@@ -88,7 +90,9 @@ class _BankAccountEditorModalState extends State<BankAccountEditorModal> {
                             ...bancos
                           ].map((e) {
                             return DropdownMenuItem(
-                                value: e.bancoId, child: Text(e.bancoNombre!));
+                                value: e.bancoId,
+                                child: Text(e.bancoNombre!,
+                                    overflow: TextOverflow.ellipsis));
                           }).toList(),
                           onChanged: (id) {
                             currentBancoId = id ?? 0;
@@ -96,6 +100,7 @@ class _BankAccountEditorModalState extends State<BankAccountEditorModal> {
                       const SizedBox(height: kDefaultPadding),
                       DropdownButtonFormField(
                           value: currentBancoCuentaTipo,
+                          isExpanded: true,
                           validator: (val) =>
                               val == 0 ? 'CAMPO OBLIGATORIO' : null,
                           items: [

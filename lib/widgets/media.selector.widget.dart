@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:rent_car_cms/models/documento.dart';
 import 'package:rent_car_cms/settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
-import 'package:image/image.dart' as img;
 
 class MediaSelectorWidget extends StatefulWidget {
   List<DocumentoModel>? documentos;
@@ -74,8 +72,6 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
 
         int tipo = 1;
 
-        print(file.extension);
-
         if (file.extension?.toLowerCase().contains('pdf') == true) {
           tipo = 2;
         }
@@ -111,6 +107,7 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
     w1 = GestureDetector(
         onTap: uploadMedia,
         child: DottedBorder(
+            color: Colors.black54,
             dashPattern: const [10, 5, 0, 3],
             borderType: BorderType.RRect,
             radius: const Radius.circular(12),
@@ -123,12 +120,16 @@ class _MediaSelectorWidgetState extends State<MediaSelectorWidget> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.image,
-                        size: 60, color: Theme.of(context).primaryColor),
+                    const Icon(Icons.image_outlined,
+                        size: 90, color: Colors.black12),
                     const SizedBox(height: kDefaultPadding / 2),
-                    const Text(
-                        'SUBIR DOCUMENTOS (CEDULA O PASAPORTE Y CERTIFICACION DE INSCRIPCION DEL CONTRIBUYENTE DE LA DGII)',
-                        textAlign: TextAlign.center)
+                    Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: kDefaultPadding),
+                        child: Text(
+                            'SUBIR DOCUMENTOS (CEDULA O PASAPORTE Y CERTIFICACION DE INSCRIPCION DEL CONTRIBUYENTE DE LA DGII)',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium))
                   ],
                 ),
               ),
@@ -241,6 +242,7 @@ class MediaItemWidget extends StatelessWidget {
         DropdownButtonFormField(
             value: documentoId,
             isExpanded: true,
+            validator: (val) => val == null ? 'CAMPO OBLIGATORIO' : null,
             decoration: const InputDecoration(
                 hintText: 'DOCUMENTO TIPO', border: OutlineInputBorder()),
             items: documentsTypes.map((e) {

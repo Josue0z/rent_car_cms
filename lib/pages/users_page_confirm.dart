@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rent_car_cms/apis/http_clients.dart';
 import 'package:rent_car_cms/utils/functions.dart';
 import 'package:rent_car_cms/models/documento.dart';
 import 'package:rent_car_cms/models/usuario.dart';
@@ -11,6 +12,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:rent_car_cms/widgets/appbar.widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UsersPageConfirm extends StatefulWidget {
   final Usuario usuario;
@@ -40,16 +42,17 @@ class _UsersPageConfirmState extends State<UsersPageConfirm> {
       }
 
       if (id == 3) {
-        var dir = await getTemporaryDirectory();
-        File file = File(path.join(dir.path, doc.imagenArchivo));
+        // var dir = await getTemporaryDirectory();
+        //File file = File(path.join(dir.path, doc.imagenArchivo));
 
-        if (!file.existsSync()) {
+        /*if (!file.existsSync()) {
           String base64 = doc.imagenBase64!.split(',')[1];
           var bytes = base64Decode(base64);
           await file.create();
           await file.writeAsBytes(bytes);
-        }
-        await OpenFile.platform.open(file.path);
+        }*/
+        await launchUrl(Uri.parse(doc.urlImagen));
+        // await OpenFile.platform.open(file.path);
 
         Navigator.pop(context);
       }

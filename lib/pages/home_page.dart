@@ -7,6 +7,7 @@ import 'package:rent_car_cms/pages/sign.in.page.dart';
 import 'package:rent_car_cms/settings.dart';
 import 'package:rent_car_cms/views/beneficiary.bank.details.view.dart';
 import 'package:rent_car_cms/views/me.clients.bookings_view.dart';
+import 'package:rent_car_cms/views/perfil.account.details.view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,6 +37,11 @@ class _HomePageState extends State<HomePage> {
       'title': 'Datos Bancarios',
       'icon': Icons.account_balance_outlined,
       'view': const BeneficiaryBankDetailsView(titleView: 'Datos Bancarios')
+    },
+    {
+      'title': 'Datos de perfil',
+      'icon': Icons.account_circle_outlined,
+      'view': const PerfilAccountDetailsView(titleView: 'Datos de perfil')
     },
   ];
 
